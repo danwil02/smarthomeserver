@@ -1,0 +1,125 @@
+version: "3"
+
+# a couple of services for your smarthome, remember to set up your .env file first
+services:
+  grafana:
+    image: "grafana/grafana:latest"
+    restart: unless-stopped
+    user: "$PUID:$PGID"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - "${DATADIR}/grafana/data:/var/lib/grafana"
+    ports:
+      - 3000:3000
+    # uncomment this if you wanta to allow anonymus acces to Grafana for embedding (e.g. in Home Assistant dashboards)
+    environment:
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  influxdb:
+    image: "influxdb:latest"
+    restart: unless-stopped
+    volumes:
+      - ${DATADIR}/influxdb/data:/var/lib/influxdb2:rw
+    healthcheck:
+      test: ["CMD", "curl", "-sI", "http://localhost:8086/ping"]
+      interval: 30s
+      timeout: 1s
+      retries: 24
+    ports:
+      - 8086:8086
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  telegraf:
+    image: telegraf_fronius
+    build:
+      context: ./telegraf-exec-fronius
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+    - "${DATADIR}/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    ports:
+      - '8125:8125'
+    environment:
+      - OPENWEATHERMAP_API_KEY=$OPENWEATHERMAP_API_KEY
+      - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  mosquitto:
+    image: "eclipse-mosquitto:latest"
+    restart: unless-stopped
+    volumes:
+      - "${DATADIR}/mosquitto/config:/mosquitto/config"
+      - "${DATADIR}/mosquitto/data:/mosquitto/data"
+      - "${DATADIR}/mosquitto/log:/mosquitto/log"
+    ports:
+      - 1883:1883
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  homeassistant:
+    container_name: homeassistant
+    restart: unless-stopped
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    #devices:
+    #  - /dev/ttyUSB0:/dev/ttyUSB0
+    #  - /dev/ttyUSB1:/dev/ttyUSB1
+    #  - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ${DATADIR}/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /dev/serial/by-id/:/dev/serial/by-id/
+    # alternative needed for auto discovery, bluetooth,...
+    #network_mode: host
+    #privileged: true
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    ports:
+      - 8123:8123
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    labels:
+      # don't automatically update this container as it might break your setup
+      - "com.centurylinklabs.watchtower.enable=false"
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  homebridge:
+    image: oznu/homebridge:latest
+    restart: always
+    network_mode: host
+    volumes:
+      - "${DATADIR}/homebridge:/homebridge"
+    ports:
+     - 8581:8581
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"

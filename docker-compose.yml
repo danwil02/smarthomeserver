@@ -1,0 +1,241 @@
+version: "3"
+
+# a couple of services for your smarthome, remember to set up your .env file first
+services:
+  grafana:
+    image: "grafana/grafana:latest"
+    restart: unless-stopped
+    user: "$PUID:$PGID"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - "${DATADIR}/grafana/data:/var/lib/grafana"
+    ports:
+      - 3000:3000
+    # uncomment this if you wanta to allow anonymus acces to Grafana for embedding (e.g. in Home Assistant dashboards)
+    environment:
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  influxdb:
+    image: "influxdb:latest"
+    restart: unless-stopped
+    volumes:
+      - ${DATADIR}/influxdb/data:/var/lib/influxdb2:rw
+    healthcheck:
+      test: [ "CMD", "curl", "-sI", "http://localhost:8086/ping" ]
+      interval: 30s
+      timeout: 1s
+      retries: 24
+    ports:
+      - 8086:8086
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  telegraf:
+    image: telegraf_fronius
+    build:
+      context: ./telegraf-exec-fronius
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - "${DATADIR}/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    ports:
+      - '8125:8125'
+    environment:
+      - OPENWEATHERMAP_API_KEY=$OPENWEATHERMAP_API_KEY
+      - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
+      - MQTT_USER=$MQTT_USER
+      - MQTT_PASSWORD=$MQTT_PASSWORD
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  mosquitto:
+    image: "eclipse-mosquitto:latest"
+    restart: unless-stopped
+    volumes:
+      - "${DATADIR}/mosquitto/config:/mosquitto/config"
+      - "${DATADIR}/mosquitto/data:/mosquitto/data"
+      - "${DATADIR}/mosquitto/log:/mosquitto/log"
+    ports:
+      - 1883:1883
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  homeassistant:
+    container_name: homeassistant
+    restart: unless-stopped
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    #devices:
+    #  - /dev/ttyUSB0:/dev/ttyUSB0
+    #  - /dev/ttyUSB1:/dev/ttyUSB1
+    #  - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ${DATADIR}/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /dev/serial/by-id/:/dev/serial/by-id/
+    # alternative needed for auto discovery, bluetooth,...
+    #network_mode: host
+    #privileged: true
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    ports:
+      - 8123:8123
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    labels:
+      # don't automatically update this container as it might break your setup
+      - "com.centurylinklabs.watchtower.enable=false"
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  homebridge:
+    image: oznu/homebridge:latest
+    restart: always
+    network_mode: host
+    volumes:
+      - "${DATADIR}/homebridge:/homebridge"
+    # ports:
+    #   - 8581:8581
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  loki:
+    container_name: loki
+    image: grafana/loki:2.3.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
+      - ${DATADIR}/loki/data:/data/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        max-size: "200m"
+    # ingest:
+    #   wal:
+    #     dir: "/tmp/wal"
+
+  heimdall:
+    image: linuxserver/heimdall
+    container_name: heimdall
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/heimdall:/config
+    ports:
+      - 9080:80
+      - 9443:443
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=${TZ}
+      - WATCHTOWER_CLEANUP=true # deleting old unused images automatically
+      # optional for notifications
+      #- WATCHTOWER_NOTIFICATIONS=email
+      #- WATCHTOWER_NOTIFICATION_EMAIL_FROM=${EMAIL_FROM}
+      #- WATCHTOWER_NOTIFICATION_EMAIL_TO=${WATCHTOWER_EMAIL_TO}
+      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER}
+      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT}
+      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER}
+      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD}
+      # alternative for notification via pushover
+      #- WATCHTOWER_NOTIFICATIONS=shoutrrr
+      #- WATCHTOWER_NOTIFICATION_URL=pushover://shoutrrr:${PO_TOKEN}@${PO_USERKEY}
+      # logging:
+      #   driver: loki
+      #   options:
+      #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+      # loki:
+      #   container_name: loki
+      #   image: grafana/loki:latest
+      #   restart: unless-stopped
+      #   ports:
+      #     - "127.0.0.1:3100:3100"
+      #   volumes:
+      #     - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
+      #     - ${DATADIR}/loki/data:/data/loki
+      #   command: -config.file=/etc/loki/loki-config.yaml
+      #   # logging:
+      #   #   driver: loki
+      #   #   options:
+      #   #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+      # can be used as an alternative to the Loki log driver
+      # promtail:
+      #   container_name: promtail
+      #   image: grafana/promtail:2.3.0
+      #   restart: unless-stopped
+      #   volumes:
+      #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      #     - ${DATADIR}/promtail/config/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      #   command: -config.file=/etc/promtail/promtail-config.yaml
+
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:2.0.6
+    container_name: duplicati
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      #- CLI_ARGS= #optional
+    volumes:
+      - ${DATADIR}/backups:/backups
+      - ${DATADIR}/duplicati/config:/config
+      - ${DATADIR}:/source
+    ports:
+      - 8200:8200
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+
+  node-red:
+    image: nodered/node-red:latest
+    environment:
+      - TZ=Europe/Amsterdam
+    ports:
+      - "1880:1880"
+    volumes:
+      - ${DATADIR}/nodered:/data

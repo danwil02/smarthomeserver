@@ -1,0 +1,422 @@
+version: '3.6'
+
+x-common-environment:
+  &common-environment
+  PUID: 1001
+  PGID: 39
+
+services:
+  traefik:
+    restart: always
+    image: traefik
+    command:
+      - "--api.insecure=true"
+      - "--log.level=INFO"
+
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # - "--certificatesresolvers.mydnschallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.mydnschallenge.acme.dnschallenge=true"
+      - "--certificatesresolvers.mydnschallenge.acme.dnschallenge.provider=cloudflare"
+
+      - "--certificatesresolvers.mydnschallenge.acme.email=acme@<DOMAIN_NAME>.com"
+      - "--certificatesresolvers.mydnschallenge.acme.storage=/letsencrypt/acme.json"
+
+      - "--providers.file=true"
+      - "--providers.file.filename=/shared_config/services.yml"
+
+    network_mode: host
+    environment:
+      - "CF_API_EMAIL=cloudflare@<DOMAIN_NAME>.com"
+      - "CF_API_KEY=<redacted>"
+        #ports:
+        #      - "80:80"
+        #      - "443:443"
+        #      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+      - "./traefik_config:/shared_config"
+
+  netdata:
+    restart: unless-stopped
+    image: netdata/netdata:latest
+    hostname: <SERVER_NAME>.<DOMAIN_NAME>.com # set to fqdn of host
+    ports:
+      - "19999:19999"
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    #network_mode: host
+    environment:
+      - PGID=995
+      - DOCKER_HOST=proxy:2375
+
+    volumes:
+      - ./netdata/lib:/var/lib/netdata
+      - ./netdata/cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./netdata/config:/etc/netdata
+      - ./smartmontools/log:/var/log/smartd
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.netdata.rule=Host(`netdata.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.netdata.entrypoints=websecure"
+      - "traefik.http.routers.netdata.tls.certresolver=mydnschallenge"
+      - "traefik.http.services.netdata.loadbalancer.server.port=19999"
+
+  plex:
+    restart: unless-stopped
+    image: linuxserver/plex
+    volumes:
+      - /srv/dev-disk-by-label-Data/Video:/data
+      - /srv/dev-disk-by-label-Data/plex-config:/config
+    # ports:
+    #   - "32400/tcp"
+    #   - "32400/udp"
+    environment:
+      <<: *common-environment
+    network_mode: host
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plex.rule=Host(`plex.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.plex.entrypoints=websecure"
+      - "traefik.http.routers.plex.tls.certresolver=mydnschallenge"
+      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+
+  radarr:
+    restart: unless-stopped
+    image: linuxserver/radarr
+    volumes:
+      - /srv/dev-disk-by-label-Data/sonarr-download:/downloads
+      - /srv/dev-disk-by-label-Data/radarr-config:/config
+      - /srv/dev-disk-by-label-Data/Video:/movies
+    ports:
+      - "7878"
+    environment:
+      <<: *common-environment
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.radarr.entrypoints=websecure"
+      - "traefik.http.routers.radarr.tls.certresolver=mydnschallenge"
+
+  sonarr:
+    restart: unless-stopped
+    image: linuxserver/sonarr
+    volumes:
+      - /srv/dev-disk-by-label-Data/sonarr-config:/config
+      - /srv/dev-disk-by-label-Data/sonarr-download:/downloads
+      - /srv/dev-disk-by-label-Data/Video:/video
+      - /srv/dev-disk-by-label-Data/Video:/tv
+    ports:
+      - "8989"
+    environment:
+      <<: *common-environment
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.sonarr.entrypoints=websecure"
+      - "traefik.http.routers.sonarr.tls.certresolver=mydnschallenge"
+
+  jackett:
+    restart: unless-stopped
+    #    image: linuxserver/jackett:150
+    image: linuxserver/jackett
+    volumes:
+      - /srv/dev-disk-by-label-Data/jackett-config:/config
+      - /srv/dev-disk-by-label-Data/sonarr-download:/downloads
+    ports:
+      - "9117"
+    environment:
+      <<: *common-environment
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jackett.rule=Host(`jackett.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.jackett.entrypoints=websecure"
+      - "traefik.http.routers.jackett.tls.certresolver=mydnschallenge"
+
+  heimdall:
+    restart: always
+    image: linuxserver/heimdall
+    volumes:
+      - ./heimdall-config:/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.heimdall.rule=Host(`<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.heimdall.entrypoints=websecure"
+      - "traefik.http.routers.heimdall.tls.certresolver=mydnschallenge"
+      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https@docker"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  deluge:
+    restart: unless-stopped
+    # Pin deluge to 1.3.15
+    image: linuxserver/deluge:5b398f77-ls22
+    volumes:
+      - /srv/dev-disk-by-label-Data/sonarr-download:/downloads
+      - /srv/dev-disk-by-label-Data/deluge-config:/config
+      # ports:
+      # - "8112"
+      #   - "6881-6891:6881-6891"
+      # - "50881:50881"
+    network_mode: host
+    environment:
+      <<: *common-environment
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.deluge.rule=Host(`deluge.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.deluge.entrypoints=websecure"
+      - "traefik.http.routers.deluge.tls.certresolver=mydnschallenge"
+      - "traefik.http.services.deluge.loadbalancer.server.port=8112"
+        #  portainer:
+        #    restart: unless-stopped
+        #    image: portainer/portainer
+        #    volumes:
+        #      - /var/run/docker.sock:/var/run/docker.sock
+        #      - ./portainer_data:/data
+        #    ports:
+      # - "8000"
+      #      - "9000"
+      #    labels:
+      #      - "traefik.enable=true"
+      #      - "traefik.http.routers.portainer.rule=Host(`portainer.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      #      - "traefik.http.routers.portainer.entrypoints=websecure"
+      #      - "traefik.http.routers.portainer.tls.certresolver=mydnschallenge"
+      # - "traefik.http.services.portainer.loadbalancer.server.port=8112"
+
+  prometheus:
+    restart: unless-stopped
+    image: prom/prometheus
+    ports:
+      - "9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/data:/prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=mydnschallenge"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--storage.tsdb.retention.time=4y"
+  grafana:
+    restart: unless-stopped
+    image: grafana/grafana-oss:latest
+    ports:
+      - "3000"
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=mydnschallenge"
+        #  jellyfin:
+        #    restart: unless-stopped
+      #    image: linuxserver/jellyfin
+      #    ports:
+      #      - "8096"
+      #      - "8920"
+      #    volumes:
+      #      - ./jellyfin/data:/data
+      #      - ./jellyfin/config:/config
+      #    labels:
+      #      - "traefik.enable=true"
+      #      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      #      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      #      - "traefik.http.routers.jellyfin.tls.certresolver=mydnschallenge"
+
+  smartmontools:
+    restart: unless-stopped
+    privileged: true
+    build:
+      context: ./smartmontools
+    volumes:
+      - ./smartmontools/log:/var/log/smartd
+  proxy:
+    restart: unless-stopped
+    image: tecnativa/docker-socket-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+  dockerhost:
+    restart: unless-stopped
+    image: qoomon/docker-host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  # kerberos:
+  #   image: kerberos/kerberos
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.kerberos.rule=Host(`kerberos.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+  #     - "traefik.http.routers.kerberos.entrypoints=websecure"
+  #     - "traefik.http.routers.kerberos.tls.certresolver=mydnschallenge"
+  #     - "traefik.http.services.kerberos.loadbalancer.server.port=80"
+  #   volumes:
+  #     - ./kerberos/config:/etc/opt/kerberosio/config
+  #     - ./kerberos/capture:/etc/opt/kerberosio/capture
+  #     - ./kerberos/logs:/etc/opt/kerberosio/logs
+  #     - ./kerberos/webconfig:/var/www/web/config
+  #   environment:
+  #     - KERBEROSIO_SECURE_SSL=true
+
+  # shinobiplugintensorflow:
+  #       image: shinobisystems/shinobi-tensorflow:latest
+  #       container_name: shinobi-tensorflow
+  #       environment:
+  #         - PLUGIN_KEY=82217fac19a61157ee69944bd808f
+  #         - PLUGIN_HOST=Shinobi
+  #       volumes:
+  #         - ./Shinobi/docker-plugins/tensorflow:/config
+  #       restart: unless-stopped
+
+  # shinobi:
+  #       image: shinobisystems/shinobi:dev
+  #       container_name: Shinobi
+  #       environment:
+  #          PLUGIN_KEYS: '"Tensorflow": "82217fac19a61157ee69944bd808f"'
+  #          SSL_ENABLED: 'true'
+  #       volumes:
+  #          - ./Shinobi/config:/config
+  #          - ./Shinobi/customAutoLoad:/home/Shinobi/libs/customAutoLoad
+  #          - ./Shinobi/database:/var/lib/mysql
+  #          - ./Shinobi/videos:/home/Shinobi/videos
+  #          - ./Shinobi/plugins:/home/Shinobi/plugins
+  #         #  - /dev/shm/Shinobi/streams:/dev/shm/streams
+  #          - /etc/localtime:/etc/localtime:ro
+  #       restart: unless-stopped
+  #       labels:
+  #         - "traefik.enable=true"
+  #         - "traefik.http.routers.shinobi.rule=Host(`shinobi.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+  #         - "traefik.http.routers.shinobi.entrypoints=websecure"
+  #         - "traefik.http.routers.shinobi.tls.certresolver=mydnschallenge"
+  #         - "traefik.http.services.shinobi.loadbalancer.server.port=8080"
+
+  # zoneminder:
+  #   image: zoneminderhq/zoneminder:latest-ubuntu18.04
+  #   environment:
+  #     TZ: 'Australia/Adelaide'
+  #   volumes:
+  #     - ./zoneminder/events:/var/cache/zoneminder/events
+  #     - ./zoneminder/images:/var/cache/zoneminder/images
+  #     - ./zoneminder/mysql:/var/lib/mysql
+  #     - ./zoneminder/logs:/var/log/zm
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.zoneminder.rule=Host(`zoneminder.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+  #     - "traefik.http.routers.zoneminder.entrypoints=websecure"
+  #     - "traefik.http.routers.zoneminder.tls.certresolver=mydnschallenge"
+  #     # - "traefik.http.services.shinobi.loadbalancer.server.port=8080"
+
+  # motioneye:
+  #   restart: unless-stopped
+  #   image: ccrisan/motioneye:dev-amd64
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
+  #     - ./motioneye/etc:/etc/motioneye
+  #     - ./motioneye/lib:/var/lib/motioneye
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.motioneye.rule=Host(`motioneye.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+  #     - "traefik.http.routers.motioneye.entrypoints=websecure"
+  #     - "traefik.http.routers.motioneye.tls.certresolver=mydnschallenge"
+  #     # - "traefik.http.services.shinobi.loadbalancer.server.port=8080"
+
+  solaredge:
+    restart: unless-stopped
+    environment:
+      INVERTER_ADDRESS: 10.0.0.177
+      EXPORTER_INTERVAL: 5
+      INVERTER_PORT: 1502
+    build:
+      context: ./SolarEdge-Exporter
+    network_mode: host
+    ports:
+      - "2112:2112"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.solaredge.rule=Host(`solaredge.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.solaredge.entrypoints=websecure"
+      - "traefik.http.routers.solaredge.tls.certresolver=mydnschallenge"
+      - "traefik.http.services.solaredge.loadbalancer.server.port=2112"
+
+  # solaredge-api-exporter:
+  #   restart: unless-stopped
+  #   expose:
+  #     - 9171
+  #   ports:
+  #     - 9171:9171
+  #   build: ./solaredge-api-exporter
+  #   environment:
+  #     - API_TOKEN=FVTV0WQS6V36ACKNDUBCRCWB8GFFS2XN
+  #     - SITE_ID=2846797
+
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - ./homeassistant/:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    privileged: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.homeassistant.entrypoints=websecure"
+      - "traefik.http.routers.homeassistant.tls.certresolver=mydnschallenge"
+      - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
+
+  adguard:
+    restart: unless-stopped
+    image: "adguard/adguardhome"
+    volumes:
+      - ./adguard/work:/opt/adguardhome/work
+      - ./adguard/conf:/opt/adguardhome/conf
+    network_mode: host
+    ports:
+      # DNS
+      - "53:53/tcp"
+      - "53:53/udp" # DNS over TLS
+      - "853:853/tcp"
+      # DNS over quic
+      - "784:784/udp"
+      - "853:853/udp"
+      - "8853:8853/udp"
+      # DNS crypt
+      - "5443:5443/tcp"
+      - "5443:5443/udp"
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguard.rule=Host(`adguard.<SERVER_NAME>.<DOMAIN_NAME>.com`)"
+      - "traefik.http.routers.adguard.entrypoints=websecure"
+      - "traefik.http.routers.adguard.tls.certresolver=mydnschallenge"
+      - "traefik.http.services.adguard.loadbalancer.server.port=3000"
+
+  samba:
+    restart: unless-stopped
+    image: "dperson/samba"
+    volumes:
+      - /srv/dev-disk-by-label-Data/Video:/share/video
+    command: '-s "Video;/share/video" -n'
+    ports:
+      - "139:139"
+      - "445:445"
