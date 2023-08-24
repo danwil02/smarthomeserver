@@ -1,5 +1,7 @@
 version: "3"
 
+name: smarthomeserver
+
 # a couple of services for your smarthome, remember to set up your .env file first
 services:
   grafana:
@@ -22,7 +24,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
 
   influxdb:
     image: "influxdb:latest"
@@ -39,7 +41,7 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   telegraf:
     image: telegraf_fronius
@@ -63,7 +65,7 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   mosquitto:
     image: "eclipse-mosquitto:latest"
@@ -77,7 +79,7 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   homeassistant:
     container_name: homeassistant
@@ -111,7 +113,7 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   homebridge:
     image: oznu/homebridge:latest
@@ -124,26 +126,39 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   loki:
     container_name: loki
-    image: grafana/loki:2.3.0
+    image: grafana/loki:2.8.0
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3100:3100"
+      - 3100:3100
     volumes:
       - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
-      - ${DATADIR}/loki/data:/data/loki
+      # - ${DATADIR}/loki/data:/data/loki
+      # - ${DATADIR}/loki/wal:/wal
     command: -config.file=/etc/loki/loki-config.yaml
-    logging:
-      driver: loki
-      options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
-        max-size: "200m"
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
+    #     max-size: "200m"
     # ingest:
     #   wal:
     #     dir: "/tmp/wal"
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:2.8.0
+    restart: unless-stopped
+    volumes:
+      - /var/snap/docker/common/var-lib-docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+      - ${DATADIR}/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      # to read container labels and logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/promtail-config.yaml
 
   heimdall:
     image: linuxserver/heimdall
@@ -161,7 +176,7 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   watchtower:
     image: containrrr/watchtower
@@ -184,8 +199,7 @@ services:
       # logging:
       #   driver: loki
       #   options:
-      #     loki-url: "http://localhost:3100/loki/api/v1/push"
-
+      #     loki-url: "http://loki:3100/loki/api/v1/push"
       # loki:
       #   container_name: loki
       #   image: grafana/loki:latest
@@ -229,7 +243,7 @@ services:
     # logging:
     #   driver: loki
     #   options:
-    #     loki-url: "http://localhost:3100/loki/api/v1/push"
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
 
   node-red:
     image: nodered/node-red:latest
@@ -239,3 +253,7 @@ services:
       - "1880:1880"
     volumes:
       - ${DATADIR}/nodered:/data
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://loki:3100/loki/api/v1/push"
