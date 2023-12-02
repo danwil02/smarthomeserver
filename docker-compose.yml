@@ -13,12 +13,13 @@ services:
         condition: service_healthy
     volumes:
       - "${DATADIR}/grafana/data:/var/lib/grafana"
+      - "./configs/grafana.ini:/etc/grafana/grafana.ini"
     ports:
       - 3000:3000
     # uncomment this if you wanta to allow anonymus acces to Grafana for embedding (e.g. in Home Assistant dashboards)
     environment:
       - GF_AUTH_DISABLE_LOGIN_FORM=false
-      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
       - GF_SECURITY_ALLOW_EMBEDDING=false
     logging:
@@ -180,6 +181,7 @@ services:
 
   watchtower:
     image: containrrr/watchtower
+    restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -247,6 +249,7 @@ services:
 
   node-red:
     image: nodered/node-red:latest
+    restart: unless-stopped
     environment:
       - TZ=Europe/Amsterdam
     ports:
