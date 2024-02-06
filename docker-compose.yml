@@ -260,3 +260,66 @@ services:
     #   driver: loki
     #   options:
     #     loki-url: "http://loki:3100/loki/api/v1/push"
+
+    # pihole:
+    #   image: pihole/pihole:latest
+    #   restart: unless-stopped
+    #   volumes:
+    #     - "${DATADIR}/pihole/etc-pihole/:/etc/pihole/"
+    #     - "${DATADIR}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    #   environment:
+    #     - TZ=Australia/Adelaide
+    #     - WEBPASSWORD=${PI_HOLE_ADMIN_PWD}
+    #   ports:
+    #     - 53:53/tcp
+    #     - 53:53/udp
+    #     - 67:67/udp
+    #     - 80:80/tcp
+    #     - 443:443/tcp
+    #   cap_add:
+    #     - NET_ADMIN
+    #   # Note on ubuntu you need to
+    #   # sudo sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+    #   # sudo sh -c 'rm /etc/resolv.conf && ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf'
+    #   # sudo systemctl restart systemd-resolved
+  plex:
+    image: plexinc/pms-docker:latest
+    restart: unless-stopped
+    volumes:
+      - "${DATADIR}/plex/config:/config"
+      - "/mnt/external_hdd/TV:/data/tvshows"
+      - "/mnt/external_hdd/Movies:/data/movies"
+    environment:
+      - PLEX_CLAIM="claim-LKcqnPkpUfSRPzYsmsVi"
+      - ADVERTISE_IP="http://<hostIPAddress>:32400/"
+    network_mode: host
+    # ports:
+    # - 32400:32400/tcp
+    # - 3005:3005/tcp
+    # - 8324:8324/tcp
+    # - 32469:32469/tcp
+    # - 1900:1900/udp
+    # - 32410:32410/udp
+    # - 32412:32412/udp
+    # - 32413:32413/udp
+    # - 32414:32414/udp
+  webtop:
+    image: lscr.io/linuxserver/webtop:latest
+    container_name: webtop
+    security_opt:
+      - seccomp:unconfined #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - SUBFOLDER=/ #optional
+      - TITLE=Webtop #optional
+    volumes:
+      - ${DATADIR}/webtop/config:/config
+      - /var/run/docker.sock:/var/run/docker.sock #optional
+    ports:
+      - 3001:3001
+    devices:
+      - /dev/dri:/dev/dri #optional
+    shm_size: "1gb" #optional
+    restart: unless-stopped
