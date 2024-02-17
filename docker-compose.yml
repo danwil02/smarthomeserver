@@ -162,7 +162,7 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yaml
 
   heimdall:
-    image: linuxserver/heimdall
+    image: linuxserver/heimdall:2.5.7
     container_name: heimdall
     restart: unless-stopped
     environment:
