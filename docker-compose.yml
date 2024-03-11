@@ -323,3 +323,41 @@ services:
       - /dev/dri:/dev/dri #optional
     shm_size: "1gb" #optional
     restart: unless-stopped
+
+  timemachine:
+    image: mbentley/timemachine
+    restart: unless-stopped
+    volumes:
+      - /mnt/external_hdd/timemachine:/opt/${TM_USERNAME}
+    ports:
+      - "548:548"
+      - "636:636"
+    environment:
+      - AFP_LOGIN=${AFP_LOGIN}
+      - AFP_PASSWORD=${AFP_PASSWORD}
+      - AFP_NAME=${AFP_NAME}
+      - AFP_SIZE_LIMIT=${AFP_SIZE_LIMIT}
+      - SMB_NAME=${SMB_NAME}
+      - SMB_LOGIN=${SMB_LOGIN}
+      - SMB_PASSWORD=${SMB_PASSWORD}
+      - TM_USERNAME=${TM_USERNAME}
+      - PASSWORD=${TM_PASSWORD}
+    network_mode: host
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:4.6.0
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    volumes:
+      - ${DATADIR}/qbittorrent/config:/config
+      - /mnt/external_hdd/Downloading:/downloads
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
