@@ -12,6 +12,5 @@ echo
 echo Make sure to create a .env.locl file with keys populated
 echo Then run:
 echo source .env.local
-echo docker compose -f smarthome.yml -f hosting.yml build
-echo docker compose -f smarthome.yml -f hosting.yml up
+echo docker compose --env-file .env.local up -d
 echo

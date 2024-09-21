@@ -95,7 +95,7 @@ services:
   homeassistant:
     container_name: homeassistant
     restart: unless-stopped
-    image: "ghcr.io/home-assistant/home-assistant:stable"
+    image: "ghcr.io/home-assistant/home-assistant:2024.9"
     #devices:
     #  - /dev/ttyUSB0:/dev/ttyUSB0
     #  - /dev/ttyUSB1:/dev/ttyUSB1
@@ -118,6 +118,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
     labels:
       # don't automatically update this container as it might break your setup
       - "com.centurylinklabs.watchtower.enable=false"
