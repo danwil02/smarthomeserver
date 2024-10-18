@@ -347,9 +347,10 @@ services:
     restart: unless-stopped
     volumes:
       - /mnt/external_hdd/timemachine:/opt/${TM_USERNAME}
-    ports:
-      - "548:548"
-      - "636:636"
+    network_mode: host
+    # ports:
+    #   - "548:548"
+    #   - "636:636"
     environment:
       - AFP_LOGIN=${AFP_LOGIN}
       - AFP_PASSWORD=${AFP_PASSWORD}
@@ -360,7 +361,6 @@ services:
       - SMB_PASSWORD=${SMB_PASSWORD}
       - TM_USERNAME=${TM_USERNAME}
       - PASSWORD=${TM_PASSWORD}
-    network_mode: host
     logging:
       driver: loki
       options:
@@ -387,3 +387,13 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
+  # cookieproxy:
+  #   image: pridkett/cookieproxy:0.1.0
+  #   container_name: cookieproxy
+  #   hostname: cookieproxy
+  #   restart: always
+  #   command: [ "/bin/sh", "-c", '/go/bin/cookieproxy -request "{\"url\": \"https://powerwall/api/login/Basic\", \"headers\": {\"Content-Type\": \"application/json\"}, \"body\": \"{\\\"username\\\":\\\"customer\\\",\\\"password\\\":\\\"$$POWERWALL_PASSWORD\\\", \\\"force_sm_off\\\":false}\", \"method\": \"POST\"}"' ]
+  #   extra_hosts:
+  #     - "powerwall: 192.168.91.1"
+  #   env_file:
+  #     - .env.local
