@@ -24,3 +24,9 @@ docker compose up
 docker-compose exec mosquitto mosquitto_passwd -b /mosquitto/config/password.txt user password
 docker-compose restart
 ```
+
+# Other Services Setup
+
+```bash
+sudo apt-get install cockpit sscg samba smartmontools gtop dstat neofetch tailscale python3-pip fzf mosquitto-clients
+```

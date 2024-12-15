@@ -54,6 +54,7 @@ services:
     volumes:
       - "${DATADIR}/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
       - "/mnt:/mnt:ro"
+      - /var/run/docker.sock:/var/run/docker.sock
       # - /:/hostfs:ro
     devices:
       - /dev/sdb2:/dev/sdb2
@@ -397,3 +398,13 @@ services:
   #     - "powerwall: 192.168.91.1"
   #   env_file:
   #     - .env.local
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - 9444:9443
+    volumes:
+      - data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+volumes:
+  data:
