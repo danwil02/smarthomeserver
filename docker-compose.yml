@@ -4,6 +4,18 @@ name: smarthomeserver
 
 # a couple of services for your smarthome, remember to set up your .env file first
 services:
+  traefik:
+    image: traefik:v2.5
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8081:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
   grafana:
     image: "grafana/grafana:latest"
     restart: unless-stopped
@@ -26,6 +38,11 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.lab`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   influxdb:
     image: "influxdb:latest"
@@ -43,6 +60,11 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.influxdb.rule=Host(`influx.lab`)"
+      - "traefik.http.routers.influxdb.entrypoints=web"
+      - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
 
   telegraf:
     image: telegraf_fronius
@@ -121,6 +143,10 @@ services:
       - TZ=${TZ}
       - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
     labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.lab`)"
+      - "traefik.http.routers.homeassistant.entrypoints=web"
+      - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
       # don't automatically update this container as it might break your setup
       - "com.centurylinklabs.watchtower.enable=false"
     logging:
@@ -140,6 +166,11 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homebridge.rule=Host(`homebridge.lab`)"
+      - "traefik.http.routers.homebridge.entrypoints=web"
+      - "traefik.http.services.homebridge.loadbalancer.server.port=8581"
 
   loki:
     container_name: loki
@@ -368,7 +399,7 @@ services:
         loki-url: "http://loki:3100/loki/api/v1/push"
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:4.6.0
+    image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     environment:
       - PUID=1000
