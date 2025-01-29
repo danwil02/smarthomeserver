@@ -68,7 +68,8 @@ services:
 
   telegraf:
     image: telegraf_fronius
-    user: root
+    #user: root
+    user: telegraf:1001
     build:
       context: ./telegraf-exec-fronius
       dockerfile: Dockerfile
