@@ -438,5 +438,14 @@ services:
       - data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+
+  samba:
+    image: dperson/samba
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /mnt/external_hdd:/mount
+    command: '-s "Media;/mount;yes;yes;no;all;none" -u "admin;admin"'
+
 volumes:
   data:
