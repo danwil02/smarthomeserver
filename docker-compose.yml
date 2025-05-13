@@ -381,6 +381,7 @@ services:
     volumes:
       - /mnt/external_hdd/timemachine:/opt/${TM_USERNAME}
     network_mode: host
+    # hostname: timemachine
     # ports:
     #   - "548:548"
     #   - "636:636"
@@ -408,9 +409,14 @@ services:
       - TZ=Etc/UTC
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
+      - WEBUI_HTTPS=true
+      - WEBUI_HTTPS_CERT=/config/qbittorrent.crt
+      - WEBUI_HTTPS_KEY=/config/qbittorrent.key
     volumes:
       - ${DATADIR}/qbittorrent/config:/config
       - /mnt/external_hdd/Downloading:/downloads
+      - ${DATADIR}/qbittorrent/qbittorrent.crt:/config/qbittorrent.crt
+      - ${DATADIR}/qbittorrent/qbittorrent.key:/config/qbittorrent.key
     ports:
       - 8080:8080
       - 6881:6881
@@ -420,6 +426,7 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
+
   # cookieproxy:
   #   image: pridkett/cookieproxy:0.1.0
   #   container_name: cookieproxy
