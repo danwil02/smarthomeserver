@@ -1,2 +1,5 @@
 .env.local
 .env.cookieproxy
+printer-maintenance/testprint_final.pdf
+*.crt
+*.key
