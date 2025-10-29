@@ -78,10 +78,10 @@ services:
       - "${DATADIR}/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
       - "/mnt:/mnt:ro"
       - /var/run/docker.sock:/var/run/docker.sock
-      # - /:/hostfs:ro
+    # - /:/hostfs:ro
     devices:
       - /dev/sdb2:/dev/sdb2
-      #   - /dev/sda:/dev/sda
+    #   - /dev/sda:/dev/sda
     depends_on:
       - influxdb
     links:
@@ -93,10 +93,10 @@ services:
       - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
       - MQTT_USER=$MQTT_USER
       - MQTT_PASSWORD=$MQTT_PASSWORD
-      # - HOST_ETC=/hostfs/etc
-      # - HOST_PROC=/hostfs/proc
-      # - HOST_SYS=/hostfs/sys
-      # - HOST_MOUNT_PREFIX=/hostfs
+    # - HOST_ETC=/hostfs/etc
+    # - HOST_PROC=/hostfs/proc
+    # - HOST_SYS=/hostfs/sys
+    # - HOST_MOUNT_PREFIX=/hostfs
     logging:
       driver: loki
       options:
@@ -181,17 +181,17 @@ services:
       - 3100:3100
     volumes:
       - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
-      # - ${DATADIR}/loki/data:/data/loki
-      # - ${DATADIR}/loki/wal:/wal
+    # - ${DATADIR}/loki/data:/data/loki
+    # - ${DATADIR}/loki/wal:/wal
     command: -config.file=/etc/loki/loki-config.yaml
-    # logging:
-    #   driver: loki
-    #   options:
-    #     loki-url: "http://loki:3100/loki/api/v1/push"
-    #     max-size: "200m"
-    # ingest:
-    #   wal:
-    #     dir: "/tmp/wal"
+  # logging:
+  #   driver: loki
+  #   options:
+  #     loki-url: "http://loki:3100/loki/api/v1/push"
+  #     max-size: "200m"
+  # ingest:
+  #   wal:
+  #     dir: "/tmp/wal"
 
   promtail:
     container_name: promtail
@@ -231,45 +231,45 @@ services:
     environment:
       - TZ=${TZ}
       - WATCHTOWER_CLEANUP=true # deleting old unused images automatically
-      # optional for notifications
-      #- WATCHTOWER_NOTIFICATIONS=email
-      #- WATCHTOWER_NOTIFICATION_EMAIL_FROM=${EMAIL_FROM}
-      #- WATCHTOWER_NOTIFICATION_EMAIL_TO=${WATCHTOWER_EMAIL_TO}
-      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER}
-      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT}
-      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER}
-      #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD}
-      # alternative for notification via pushover
-      #- WATCHTOWER_NOTIFICATIONS=shoutrrr
-      #- WATCHTOWER_NOTIFICATION_URL=pushover://shoutrrr:${PO_TOKEN}@${PO_USERKEY}
+    # optional for notifications
+    #- WATCHTOWER_NOTIFICATIONS=email
+    #- WATCHTOWER_NOTIFICATION_EMAIL_FROM=${EMAIL_FROM}
+    #- WATCHTOWER_NOTIFICATION_EMAIL_TO=${WATCHTOWER_EMAIL_TO}
+    #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${SMTP_SERVER}
+    #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${SMTP_PORT}
+    #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${SMTP_USER}
+    #- WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD}
+    # alternative for notification via pushover
+    #- WATCHTOWER_NOTIFICATIONS=shoutrrr
+    #- WATCHTOWER_NOTIFICATION_URL=pushover://shoutrrr:${PO_TOKEN}@${PO_USERKEY}
     logging:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
-      # loki:
-      #   container_name: loki
-      #   image: grafana/loki:latest
-      #   restart: unless-stopped
-      #   ports:
-      #     - "127.0.0.1:3100:3100"
-      #   volumes:
-      #     - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
-      #     - ${DATADIR}/loki/data:/data/loki
-      #   command: -config.file=/etc/loki/loki-config.yaml
-      #   # logging:
-      #   #   driver: loki
-      #   #   options:
-      #   #     loki-url: "http://localhost:3100/loki/api/v1/push"
+  # loki:
+  #   container_name: loki
+  #   image: grafana/loki:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:3100:3100"
+  #   volumes:
+  #     - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
+  #     - ${DATADIR}/loki/data:/data/loki
+  #   command: -config.file=/etc/loki/loki-config.yaml
+  #   # logging:
+  #   #   driver: loki
+  #   #   options:
+  #   #     loki-url: "http://localhost:3100/loki/api/v1/push"
 
-      # can be used as an alternative to the Loki log driver
-      # promtail:
-      #   container_name: promtail
-      #   image: grafana/promtail:2.3.0
-      #   restart: unless-stopped
-      #   volumes:
-      #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      #     - ${DATADIR}/promtail/config/promtail-config.yaml:/etc/promtail/promtail-config.yaml
-      #   command: -config.file=/etc/promtail/promtail-config.yaml
+  # can be used as an alternative to the Loki log driver
+  # promtail:
+  #   container_name: promtail
+  #   image: grafana/promtail:2.3.0
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
+  #     - ${DATADIR}/promtail/config/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+  #   command: -config.file=/etc/promtail/promtail-config.yaml
 
   duplicati:
     image: lscr.io/linuxserver/duplicati:2.0.6
@@ -279,7 +279,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      #- CLI_ARGS= #optional
+    #- CLI_ARGS= #optional
     volumes:
       - ${DATADIR}/backups:/backups
       - ${DATADIR}/duplicati/config:/config
@@ -304,27 +304,27 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
-    # pihole:
-    #   image: pihole/pihole:latest
-    #   restart: unless-stopped
-    #   volumes:
-    #     - "${DATADIR}/pihole/etc-pihole/:/etc/pihole/"
-    #     - "${DATADIR}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    #   environment:
-    #     - TZ=Australia/Adelaide
-    #     - WEBPASSWORD=${PI_HOLE_ADMIN_PWD}
-    #   ports:
-    #     - 53:53/tcp
-    #     - 53:53/udp
-    #     - 67:67/udp
-    #     - 80:80/tcp
-    #     - 443:443/tcp
-    #   cap_add:
-    #     - NET_ADMIN
-    #   # Note on ubuntu you need to
-    #   # sudo sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-    #   # sudo sh -c 'rm /etc/resolv.conf && ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf'
-    #   # sudo systemctl restart systemd-resolved
+  # pihole:
+  #   image: pihole/pihole:latest
+  #   restart: unless-stopped
+  #   volumes:
+  #     - "${DATADIR}/pihole/etc-pihole/:/etc/pihole/"
+  #     - "${DATADIR}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+  #   environment:
+  #     - TZ=Australia/Adelaide
+  #     - WEBPASSWORD=${PI_HOLE_ADMIN_PWD}
+  #   ports:
+  #     - 53:53/tcp
+  #     - 53:53/udp
+  #     - 67:67/udp
+  #     - 80:80/tcp
+  #     - 443:443/tcp
+  #   cap_add:
+  #     - NET_ADMIN
+  #   # Note on ubuntu you need to
+  #   # sudo sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+  #   # sudo sh -c 'rm /etc/resolv.conf && ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf'
+  #   # sudo systemctl restart systemd-resolved
   plex:
     image: plexinc/pms-docker:latest
     restart: unless-stopped
@@ -340,16 +340,16 @@ services:
       driver: loki
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
-    # ports:
-    # - 32400:32400/tcp
-    # - 3005:3005/tcp
-    # - 8324:8324/tcp
-    # - 32469:32469/tcp
-    # - 1900:1900/udp
-    # - 32410:32410/udp
-    # - 32412:32412/udp
-    # - 32413:32413/udp
-    # - 32414:32414/udp
+  # ports:
+  # - 32400:32400/tcp
+  # - 3005:3005/tcp
+  # - 8324:8324/tcp
+  # - 32469:32469/tcp
+  # - 1900:1900/udp
+  # - 32410:32410/udp
+  # - 32412:32412/udp
+  # - 32413:32413/udp
+  # - 32414:32414/udp
   webtop:
     image: lscr.io/linuxserver/webtop:latest
     container_name: webtop
@@ -375,30 +375,30 @@ services:
       options:
         loki-url: "http://loki:3100/loki/api/v1/push"
 
-  timemachine:
-    image: mbentley/timemachine
-    restart: unless-stopped
-    volumes:
-      - /mnt/external_hdd/timemachine:/opt/${TM_USERNAME}
-    network_mode: host
-    # hostname: timemachine
-    # ports:
-    #   - "548:548"
-    #   - "636:636"
-    environment:
-      - AFP_LOGIN=${AFP_LOGIN}
-      - AFP_PASSWORD=${AFP_PASSWORD}
-      - AFP_NAME=${AFP_NAME}
-      - AFP_SIZE_LIMIT=${AFP_SIZE_LIMIT}
-      - SMB_NAME=${SMB_NAME}
-      - SMB_LOGIN=${SMB_LOGIN}
-      - SMB_PASSWORD=${SMB_PASSWORD}
-      - TM_USERNAME=${TM_USERNAME}
-      - PASSWORD=${TM_PASSWORD}
-    logging:
-      driver: loki
-      options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+  # timemachine:
+  #   image: mbentley/timemachine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /mnt/external_hdd/timemachine:/opt/${TM_USERNAME}
+  #   network_mode: host
+  #   # hostname: timemachine
+  #   # ports:
+  #   #   - "548:548"
+  #   #   - "636:636"
+  #   environment:
+  #     - AFP_LOGIN=${AFP_LOGIN}
+  #     - AFP_PASSWORD=${AFP_PASSWORD}
+  #     - AFP_NAME=${AFP_NAME}
+  #     - AFP_SIZE_LIMIT=${AFP_SIZE_LIMIT}
+  #     - SMB_NAME=${SMB_NAME}
+  #     - SMB_LOGIN=${SMB_LOGIN}
+  #     - SMB_PASSWORD=${SMB_PASSWORD}
+  #     - TM_USERNAME=${TM_USERNAME}
+  #     - PASSWORD=${TM_PASSWORD}
+  #   logging:
+  #     driver: loki
+  #     options:
+  #       loki-url: "http://loki:3100/loki/api/v1/push"
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
