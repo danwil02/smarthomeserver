@@ -37,7 +37,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.lab`)"
@@ -59,7 +59,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.influxdb.rule=Host(`influx.lab`)"
@@ -100,7 +100,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   mosquitto:
     image: "eclipse-mosquitto:latest"
@@ -114,7 +114,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   homeassistant:
     container_name: homeassistant
@@ -153,7 +153,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   homebridge:
     image: oznu/homebridge:latest
@@ -166,7 +166,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homebridge.rule=Host(`homebridge.lab`)"
@@ -187,7 +187,7 @@ services:
   # logging:
   #   driver: loki
   #   options:
-  #     loki-url: "http://loki:3100/loki/api/v1/push"
+  #     loki-url: "${LOKI_URL}"
   #     max-size: "200m"
   # ingest:
   #   wal:
@@ -221,7 +221,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   watchtower:
     image: containrrr/watchtower
@@ -245,7 +245,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
   # loki:
   #   container_name: loki
   #   image: grafana/loki:latest
@@ -289,7 +289,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   node-red:
     image: nodered/node-red:latest
@@ -303,7 +303,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
   # pihole:
   #   image: pihole/pihole:latest
   #   restart: unless-stopped
@@ -339,7 +339,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
   # ports:
   # - 32400:32400/tcp
   # - 3005:3005/tcp
@@ -373,7 +373,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   # timemachine:
   #   image: mbentley/timemachine
@@ -398,7 +398,7 @@ services:
   #   logging:
   #     driver: loki
   #     options:
-  #       loki-url: "http://loki:3100/loki/api/v1/push"
+  #       loki-url: "${LOKI_URL}"
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -425,7 +425,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-url: "${LOKI_URL}"
 
   # cookieproxy:
   #   image: pridkett/cookieproxy:0.1.0
@@ -445,6 +445,10 @@ services:
       - data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
 
   samba:
     image: dperson/samba
@@ -453,6 +457,10 @@ services:
     volumes:
       - /mnt/external_hdd:/mount
     command: '-s "Media;/mount;yes;yes;no;all;none" -u "admin;admin"'
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
 
 volumes:
   data:
