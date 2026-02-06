@@ -17,7 +17,7 @@ scene: !include scenes.yaml
 # InfluxDB configuration
 influxdb:
   api_version: 2
-  host: influxdb
+  host: !env_var INFLUXDB_HOST
   port: 8086
   bucket: homeassistant
   token: !env_var INFLUXDB_TOKEN

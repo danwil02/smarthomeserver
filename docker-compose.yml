@@ -119,7 +119,7 @@ services:
   homeassistant:
     container_name: homeassistant
     restart: unless-stopped
-    image: "ghcr.io/home-assistant/home-assistant:2024.9"
+    image: "ghcr.io/home-assistant/home-assistant:2025.12"
     #devices:
     #  - /dev/ttyUSB0:/dev/ttyUSB0
     #  - /dev/ttyUSB1:/dev/ttyUSB1
@@ -143,6 +143,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
+      - INFLUXDB_HOST=$LOCAL_IP
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.lab`)"
