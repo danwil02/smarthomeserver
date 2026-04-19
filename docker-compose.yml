@@ -463,5 +463,71 @@ services:
       options:
         loki-url: "${LOKI_URL}"
 
+  postgres:
+    image: "postgres:15-alpine"
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD}
+      - POSTGRES_DB=n8n
+    volumes:
+      - "${DATADIR}/postgres/data:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+
+  n8n:
+    image: "n8nio/n8n:latest"
+    container_name: n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_HOST=${N8N_HOST:-n8n.lab}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
+      - N8N_PORT=5678
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-https://n8n.lab}
+      - N8N_EDITOR_BASE_URL=${N8N_WEBHOOK_URL:-https://n8n.lab}
+      - OLLAMA_API_URL=${OLLAMA_API_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG:-default}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET:-default}
+      - TZ=${TZ}
+    volumes:
+      - "${DATADIR}/n8n:/home/node/.n8n"
+    ports:
+      - "5678:5678"
+    cpus: 1
+    mem_limit: 512m
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(\`n8n.lab\`)"
+      - "traefik.http.routers.n8n.entrypoints=web"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
 volumes:
   data:
