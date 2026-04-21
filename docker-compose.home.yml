@@ -85,6 +85,11 @@ services:
       - ${DATADIR}/nodered:/data
     networks:
       - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.node-red.rule=Host(`node-red.lab`)"
+      - "traefik.http.routers.node-red.entrypoints=web"
+      - "traefik.http.services.node-red.loadbalancer.server.port=1880"
     logging:
       driver: loki
       options:

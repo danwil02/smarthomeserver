@@ -1,4 +1,8 @@
 http:
+  serversTransports:
+    skipverify:
+      insecureSkipVerify: true
+
   routers:
     plex:
       rule: "Host(`plex.lab`)"

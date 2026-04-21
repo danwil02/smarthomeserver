@@ -14,6 +14,11 @@ services:
       - 9443:443
     networks:
       - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.heimdall.rule=Host(`heimdall.lab`)"
+      - "traefik.http.routers.heimdall.entrypoints=web"
+      - "traefik.http.services.heimdall.loadbalancer.server.port=80"
     logging:
       driver: loki
       options:
@@ -38,6 +43,11 @@ services:
       - 8200:8200
     networks:
       - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.duplicati.rule=Host(`duplicati.lab`)"
+      - "traefik.http.routers.duplicati.entrypoints=web"
+      - "traefik.http.services.duplicati.loadbalancer.server.port=8200"
     logging:
       driver: loki
       options:
@@ -67,6 +77,11 @@ services:
     restart: unless-stopped
     networks:
       - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webtop.rule=Host(`webtop.lab`)"
+      - "traefik.http.routers.webtop.entrypoints=web"
+      - "traefik.http.services.webtop.loadbalancer.server.port=3001"
     logging:
       driver: loki
       options:
