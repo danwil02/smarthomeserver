@@ -1,0 +1,135 @@
+services:
+  loki:
+    container_name: loki
+    image: grafana/loki:2.8.0
+    restart: unless-stopped
+    ports:
+      - 3100:3100
+    volumes:
+      - ${DATADIR}/loki-config.yaml:/etc/loki/loki-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - homelab
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:2.8.0
+    restart: unless-stopped
+    volumes:
+      - /var/snap/docker/common/var-lib-docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+      - ${DATADIR}/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      # to read container labels and logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    networks:
+      - homelab
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: "grafana/grafana:latest"
+    restart: unless-stopped
+    user: "$PUID:$PGID"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - "${DATADIR}/grafana/data:/var/lib/grafana"
+      - "./configs/grafana.ini:/etc/grafana/grafana.ini"
+    ports:
+      - 3000:3000
+    # uncomment this if you wanta to allow anonymus acces to Grafana for embedding (e.g. in Home Assistant dashboards)
+    environment:
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.lab`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  influxdb:
+    image: "influxdb:latest"
+    restart: unless-stopped
+    volumes:
+      - ${DATADIR}/influxdb/data:/var/lib/influxdb2:rw
+    healthcheck:
+      test: [ "CMD", "curl", "-sI", "http://localhost:8086/ping" ]
+      interval: 30s
+      timeout: 1s
+      retries: 24
+    ports:
+      - 8086:8086
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.influxdb.rule=Host(`influx.lab`)"
+      - "traefik.http.routers.influxdb.entrypoints=web"
+      - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
+
+  telegraf:
+    image: telegraf_fronius
+    #user: root
+    user: telegraf:1001
+    build:
+      context: ./telegraf-exec-fronius
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 15s
+    volumes:
+      - "${DATADIR}/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
+      - "/mnt:/mnt:ro"
+      - /var/run/docker.sock:/var/run/docker.sock
+    # - /:/hostfs:ro
+    devices:
+      - /dev/sdb2:/dev/sdb2
+    #   - /dev/sda:/dev/sda
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    ports:
+      - '8125:8125'
+    environment:
+      - OPENWEATHERMAP_API_KEY=$OPENWEATHERMAP_API_KEY
+      - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
+      - MQTT_USER=$MQTT_USER
+      - MQTT_PASSWORD=$MQTT_PASSWORD
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+networks:
+  homelab:
+    external: true

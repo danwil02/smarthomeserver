@@ -525,7 +525,7 @@ services:
         loki-url: "${LOKI_URL}"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(\`n8n.lab\`)"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.lab`)"
       - "traefik.http.routers.n8n.entrypoints=web"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
 

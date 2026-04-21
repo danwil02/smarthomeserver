@@ -1,0 +1,102 @@
+services:
+  homeassistant:
+    container_name: homeassistant
+    restart: unless-stopped
+    image: "ghcr.io/home-assistant/home-assistant:2025.12"
+    #devices:
+    #  - /dev/ttyUSB0:/dev/ttyUSB0
+    #  - /dev/ttyUSB1:/dev/ttyUSB1
+    #  - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ${DATADIR}/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /dev/serial/by-id/:/dev/serial/by-id/
+    # alternative needed for auto discovery, bluetooth,...
+    #network_mode: host
+    #privileged: true
+    depends_on:
+      mosquitto:
+        condition: service_started
+    ports:
+      - 8123:8123
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
+      - INFLUXDB_HOST=$LOCAL_IP
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.lab`)"
+      - "traefik.http.routers.homeassistant.entrypoints=web"
+      - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
+      # don't automatically update this container as it might break your setup
+      - "com.centurylinklabs.watchtower.enable=false"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  homebridge:
+    image: oznu/homebridge:latest
+    restart: always
+    network_mode: host
+    volumes:
+      - "${DATADIR}/homebridge:/homebridge"
+    # ports:
+    #   - 8581:8581
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homebridge.rule=Host(`homebridge.lab`)"
+      - "traefik.http.routers.homebridge.entrypoints=web"
+      - "traefik.http.services.homebridge.loadbalancer.server.port=8581"
+
+  mosquitto:
+    image: "eclipse-mosquitto:latest"
+    restart: unless-stopped
+    volumes:
+      - "${DATADIR}/mosquitto/config:/mosquitto/config"
+      - "${DATADIR}/mosquitto/data:/mosquitto/data"
+      - "${DATADIR}/mosquitto/log:/mosquitto/log"
+    ports:
+      - 1883:1883
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  node-red:
+    image: nodered/node-red:latest
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Amsterdam
+    ports:
+      - "1880:1880"
+    volumes:
+      - ${DATADIR}/nodered:/data
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+networks:
+  homelab:
+    external: true

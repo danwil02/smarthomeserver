@@ -1,0 +1,53 @@
+services:
+  plex:
+    image: plexinc/pms-docker:latest
+    restart: unless-stopped
+    volumes:
+      - "${DATADIR}/plex/config:/config"
+      - "/mnt/external_hdd/TV:/data/tvshows"
+      - "/mnt/external_hdd/Movies:/data/movies"
+    environment:
+      - PLEX_CLAIM="claim-LKcqnPkpUfSRPzYsmsVi"
+      - ADVERTISE_IP="http://<hostIPAddress>:32400/"
+    network_mode: host
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+      - WEBUI_HTTPS=true
+      - WEBUI_HTTPS_CERT=/config/qbittorrent.crt
+      - WEBUI_HTTPS_KEY=/config/qbittorrent.key
+    volumes:
+      - ${DATADIR}/qbittorrent/config:/config
+      - /mnt/external_hdd/Downloading:/downloads
+      - ${DATADIR}/qbittorrent/qbittorrent.crt:/config/qbittorrent.crt
+      - ${DATADIR}/qbittorrent/qbittorrent.key:/config/qbittorrent.key
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+networks:
+  homelab:
+    external: true
