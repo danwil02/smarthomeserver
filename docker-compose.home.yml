@@ -55,11 +55,6 @@ services:
         loki-url: "${LOKI_URL}"
         mode: non-blocking
         max-buffer-size: 4m
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.homebridge.rule=Host(`homebridge.lab`)"
-      - "traefik.http.routers.homebridge.entrypoints=web"
-      - "traefik.http.services.homebridge.loadbalancer.server.port=8581"
 
   mosquitto:
     image: "eclipse-mosquitto:latest"

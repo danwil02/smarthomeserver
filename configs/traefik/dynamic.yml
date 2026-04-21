@@ -1,0 +1,24 @@
+http:
+  routers:
+    plex:
+      rule: "Host(`plex.lab`)"
+      entryPoints:
+        - web
+      service: plex
+
+    homebridge:
+      rule: "Host(`homebridge.lab`)"
+      entryPoints:
+        - web
+      service: homebridge
+
+  services:
+    plex:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:32400"
+
+    homebridge:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:8581"

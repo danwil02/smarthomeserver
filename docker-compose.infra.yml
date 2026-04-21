@@ -1,4 +1,30 @@
 services:
+  traefik:
+    image: traefik:v2.5
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.network=homelab"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8081:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./configs/traefik:/etc/traefik/dynamic:ro"
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
   portainer:
     image: portainer/portainer-ce:latest
     ports:
@@ -40,6 +66,25 @@ services:
     volumes:
       - /mnt/external_hdd:/mount
     command: '-s "Media;/mount;yes;yes;no;all;none" -u "admin;admin"'
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  dnsmasq:
+    image: andyshinn/dnsmasq:latest
+    container_name: dnsmasq
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    command: --no-daemon --address=/.lab/${TAILSCALE_IP}
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      - homelab
     logging:
       driver: loki
       options:

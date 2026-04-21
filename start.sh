@@ -24,6 +24,43 @@ fi
 echo "==> [1/5] Starting infra stack"
 compose -f docker-compose.infra.yml up -d
 
+echo "==> Checking Tailscale DNS setup"
+if ! command -v tailscale >/dev/null 2>&1; then
+  echo "    tailscale CLI not found — skipping DNS check"
+elif ! command -v dig >/dev/null 2>&1; then
+  echo "    dig not found — skipping DNS check (install dnsutils to enable)"
+else
+  TS_IP=$(tailscale ip -4 2>/dev/null || echo "")
+  if [ -z "${TS_IP}" ]; then
+    echo "    tailscale not connected — skipping DNS check"
+  else
+    # Give dnsmasq a moment to start
+    sleep 2
+
+    # Check dnsmasq is answering *.lab queries correctly
+    RESOLVED=$(dig +short +time=2 "probe.lab" "@${TS_IP}" 2>/dev/null | head -1)
+    if [ "${RESOLVED}" = "${TS_IP}" ]; then
+      echo "    dnsmasq: answering *.lab → ${TS_IP} ✓"
+    else
+      echo "    WARN: dnsmasq not answering correctly (got '${RESOLVED}', expected '${TS_IP}')"
+    fi
+
+    # Check if Tailscale split DNS is active (*.lab resolves without specifying nameserver)
+    TS_RESOLVED=$(dig +short +time=2 "probe.lab" 2>/dev/null | head -1)
+    if [ "${TS_RESOLVED}" = "${TS_IP}" ]; then
+      echo "    Tailscale split DNS: active ✓"
+    else
+      echo "    Tailscale split DNS: NOT configured"
+      echo ""
+      echo "    One-time setup required in Tailscale admin:"
+      echo "    https://login.tailscale.com/admin/dns"
+      echo "    → Add nameserver: ${TS_IP}"
+      echo "    → Restrict to domain: lab"
+      echo ""
+    fi
+  fi
+fi
+
 echo "==> [2/5] Starting monitoring stack"
 compose -f docker-compose.monitoring.yml up -d
 
