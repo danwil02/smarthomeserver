@@ -55,39 +55,39 @@ services:
         mode: non-blocking
         max-buffer-size: 4m
 
-  webtop:
-    image: lscr.io/linuxserver/webtop:latest
-    container_name: webtop
-    security_opt:
-      - seccomp:unconfined #optional
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
-      - SUBFOLDER=/ #optional
-      - TITLE=Webtop #optional
-    volumes:
-      - ${DATADIR}/webtop/config:/config
-      - /var/run/docker.sock:/var/run/docker.sock #optional
-    ports:
-      - 3001:3001
-    devices:
-      - /dev/dri:/dev/dri #optional
-    shm_size: "1gb" #optional
-    restart: unless-stopped
-    networks:
-      - homelab
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.webtop.rule=Host(`webtop.lab`)"
-      - "traefik.http.routers.webtop.entrypoints=web"
-      - "traefik.http.services.webtop.loadbalancer.server.port=3001"
-    logging:
-      driver: loki
-      options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+  # webtop:
+  #   image: lscr.io/linuxserver/webtop:latest
+  #   container_name: webtop
+  #   security_opt:
+  #     - seccomp:unconfined #optional
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Etc/UTC
+  #     - SUBFOLDER=/ #optional
+  #     - TITLE=Webtop #optional
+  #   volumes:
+  #     - ${DATADIR}/webtop/config:/config
+  #     - /var/run/docker.sock:/var/run/docker.sock #optional
+  #   ports:
+  #     - 3001:3001
+  #   devices:
+  #     - /dev/dri:/dev/dri #optional
+  #   shm_size: "1gb" #optional
+  #   restart: unless-stopped
+  #   networks:
+  #     - homelab
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.webtop.rule=Host(`webtop.lab`)"
+  #     - "traefik.http.routers.webtop.entrypoints=web"
+  #     - "traefik.http.services.webtop.loadbalancer.server.port=3001"
+  #   logging:
+  #     driver: loki
+  #     options:
+  #       loki-url: "${LOKI_URL}"
+  #       mode: non-blocking
+  #       max-buffer-size: 4m
 
   postgres:
     image: "postgres:15-alpine"
@@ -102,7 +102,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      test: [ "CMD-SHELL", "pg_isready -U n8n" ]
       interval: 5s
       timeout: 5s
       retries: 5

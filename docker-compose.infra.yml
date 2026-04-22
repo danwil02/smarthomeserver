@@ -67,12 +67,18 @@ services:
         max-buffer-size: 4m
 
   samba:
-    image: dperson/samba
+    image: mbentley/timemachine:smb
     restart: unless-stopped
     network_mode: host
+    environment:
+      - CUSTOM_SMB_CONF=true
+      - TM_USERNAME=${TM_USERNAME}
+      - PASSWORD=${TM_PASSWORD}
+      - TZ=${TZ}
     volumes:
-      - /mnt/external_hdd:/mount
-    command: '-s "Media;/mount;yes;yes;no;all;none" -u "admin;admin"'
+      - /mnt/external_hdd/timemachine:/opt/timemachine
+      - /mnt/external_hdd:/media:ro
+      - ./configs/smb.conf:/etc/samba/smb.conf
     logging:
       driver: loki
       options:
