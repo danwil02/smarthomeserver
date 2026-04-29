@@ -7,8 +7,8 @@ services:
       - "/mnt/external_hdd/TV:/data/tvshows"
       - "/mnt/external_hdd/Movies:/data/movies"
     environment:
-      - PLEX_CLAIM="claim-LKcqnPkpUfSRPzYsmsVi"
-      - ADVERTISE_IP="http://<hostIPAddress>:32400/"
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - ADVERTISE_IP=http://${TAILSCALE_IP}:32400/
     network_mode: host
     logging:
       driver: loki
@@ -20,10 +20,11 @@ services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
+    restart: unless-stopped
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
       - WEBUI_HTTPS=true
@@ -31,14 +32,13 @@ services:
       - WEBUI_HTTPS_KEY=/config/qbittorrent.key
     volumes:
       - ${DATADIR}/qbittorrent/config:/config
-      - /mnt/external_hdd/Downloading:/downloads
+      - /mnt/external_hdd:/data
       - ${DATADIR}/qbittorrent/qbittorrent.crt:/config/qbittorrent.crt
       - ${DATADIR}/qbittorrent/qbittorrent.key:/config/qbittorrent.key
     ports:
       - 8080:8080
       - 6881:6881
       - 6881:6881/udp
-    restart: unless-stopped
     networks:
       - homelab
     labels:
@@ -48,6 +48,338 @@ services:
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
       - "traefik.http.services.qbittorrent.loadbalancer.server.scheme=https"
       - "traefik.http.services.qbittorrent.loadbalancer.serverstransport=skipverify@file"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/prowlarr/config:/config
+    ports:
+      - "9696:9696"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.lab`)"
+      - "traefik.http.routers.prowlarr.entrypoints=web"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/flaresolverr/config:/config
+    ports:
+      - "8191:8191"
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/radarr/config:/config
+      - /mnt/external_hdd:/data
+    ports:
+      - "7878:7878"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.lab`)"
+      - "traefik.http.routers.radarr.entrypoints=web"
+      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/sonarr/config:/config
+      - /mnt/external_hdd:/data
+    ports:
+      - "8989:8989"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.lab`)"
+      - "traefik.http.routers.sonarr.entrypoints=web"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/lidarr/config:/config
+      - /mnt/external_hdd:/data
+    ports:
+      - "8686:8686"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lidarr.rule=Host(`lidarr.lab`)"
+      - "traefik.http.routers.lidarr.entrypoints=web"
+      - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  lazylibrarian:
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    container_name: lazylibrarian
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/lazylibrarian/config:/config
+      - /mnt/external_hdd:/data
+    ports:
+      - "5299:5299"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lazylibrarian.rule=Host(`lazylibrarian.lab`)"
+      - "traefik.http.routers.lazylibrarian.entrypoints=web"
+      - "traefik.http.services.lazylibrarian.loadbalancer.server.port=5299"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  unpackerr:
+    image: golift/unpackerr:latest
+    container_name: unpackerr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_API_KEY=${SONARR_API_KEY}
+      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_API_KEY=${RADARR_API_KEY}
+      - UN_LIDARR_0_URL=http://lidarr:8686
+      - UN_LIDARR_0_API_KEY=${LIDARR_API_KEY}
+      - UN_LAZYLIBRARIAN_0_URL=http://lazylibrarian:5299
+      - UN_LAZYLIBRARIAN_0_API_KEY=${READARR_API_KEY}
+    volumes:
+      - /mnt/external_hdd:/data
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  # decluttarr:
+  #   image: ghcr.io/manimatter/decluttarr:latest
+  #   container_name: decluttarr
+  #   restart: unless-stopped
+  #   environment:
+  #     - TZ=${TZ}
+  #     - LOG_LEVEL=INFO
+  #     - SSL_VERIFICATION=false
+  #     - QBITTORRENT_URL=https://qbittorrent:8080
+  #     - QBITTORRENT_USERNAME=${QBIT_USERNAME}
+  #     - QBITTORRENT_PASSWORD=${QBIT_PASSWORD}
+  #     - RADARR_URL=http://radarr:7878
+  #     - RADARR_API_KEY=${RADARR_API_KEY}
+  #     - SONARR_URL=http://sonarr:8989
+  #     - SONARR_API_KEY=${SONARR_API_KEY}
+  #     - LIDARR_URL=http://lidarr:8686
+  #     - LIDARR_API_KEY=${LIDARR_API_KEY}
+  #     - LAZYLIBRARIAN_URL=http://lazylibrarian:5299
+  #     - LAZYLIBRARIAN_API_KEY=${READARR_API_KEY}
+  #     - REMOVE_STALLED=true
+  #     - REMOVE_DEAD_TRACKERS=true
+  #   networks:
+  #     - homelab
+  #   logging:
+  #     driver: loki
+  #     options:
+  #       loki-url: "${LOKI_URL}"
+  #       mode: non-blocking
+  #       max-buffer-size: 4m
+
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:latest
+    container_name: recyclarr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - RADARR_API_KEY=${RADARR_API_KEY}
+      - SONARR_API_KEY=${SONARR_API_KEY}
+    volumes:
+      - ${DATADIR}/recyclarr/config:/config
+      - ./configs/recyclarr.yml:/config/recyclarr.yml:ro
+    networks:
+      - homelab
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/bazarr/config:/config
+      - /mnt/external_hdd:/data
+    ports:
+      - "6767:6767"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bazarr.rule=Host(`bazarr.lab`)"
+      - "traefik.http.routers.bazarr.entrypoints=web"
+      - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/seerr/config:/app/config
+    ports:
+      - "5055:5055"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.seerr.rule=Host(`seerr.lab`)"
+      - "traefik.http.routers.seerr.entrypoints=web"
+      - "traefik.http.services.seerr.loadbalancer.server.port=5055"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/tautulli/config:/config
+    ports:
+      - "8181:8181"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tautulli.rule=Host(`tautulli.lab`)"
+      - "traefik.http.routers.tautulli.entrypoints=web"
+      - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
+    logging:
+      driver: loki
+      options:
+        loki-url: "${LOKI_URL}"
+        mode: non-blocking
+        max-buffer-size: 4m
+
+  notifiarr:
+    image: golift/notifiarr:latest
+    container_name: notifiarr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - DN_API_KEY=${NOTIFIARR_API_KEY}
+    volumes:
+      - ${DATADIR}/notifiarr/config:/config
+    ports:
+      - "5454:5454"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.lab`)"
+      - "traefik.http.routers.notifiarr.entrypoints=web"
+      - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
     logging:
       driver: loki
       options:

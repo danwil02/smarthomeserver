@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v2.5
+    image: traefik:v2
     restart: unless-stopped
     command:
       - "--api.insecure=true"
@@ -19,11 +19,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -43,11 +42,10 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.scheme=https"
       - "traefik.http.services.portainer.loadbalancer.serverstransport=skipverify@file"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   watchtower:
     image: containrrr/watchtower
@@ -60,15 +58,15 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   samba:
     image: mbentley/timemachine:smb
     restart: unless-stopped
+    stop_grace_period: 15s
     network_mode: host
     environment:
       - CUSTOM_SMB_CONF=true
@@ -77,14 +75,13 @@ services:
       - TZ=${TZ}
     volumes:
       - /mnt/external_hdd/timemachine:/opt/timemachine
-      - /mnt/external_hdd:/media:ro
+      - /mnt/external_hdd:/media
       - ./configs/smb.conf:/etc/samba/smb.conf
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   dnsmasq:
     image: andyshinn/dnsmasq:latest
@@ -99,11 +96,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   data:
