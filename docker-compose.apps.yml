@@ -20,11 +20,10 @@ services:
       - "traefik.http.routers.heimdall.entrypoints=web"
       - "traefik.http.services.heimdall.loadbalancer.server.port=80"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   duplicati:
     image: lscr.io/linuxserver/duplicati:2.0.6
@@ -49,11 +48,10 @@ services:
       - "traefik.http.routers.duplicati.entrypoints=web"
       - "traefik.http.services.duplicati.loadbalancer.server.port=8200"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   # webtop:
   #   image: lscr.io/linuxserver/webtop:latest
@@ -109,11 +107,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   n8n:
     image: "n8nio/n8n:latest"
@@ -152,11 +149,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(\"n8n.lab\")"

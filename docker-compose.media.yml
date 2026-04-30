@@ -11,11 +11,10 @@ services:
       - ADVERTISE_IP=http://${TAILSCALE_IP}:32400/
     network_mode: host
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -49,11 +48,10 @@ services:
       - "traefik.http.services.qbittorrent.loadbalancer.server.scheme=https"
       - "traefik.http.services.qbittorrent.loadbalancer.serverstransport=skipverify@file"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -75,11 +73,10 @@ services:
       - "traefik.http.routers.prowlarr.entrypoints=web"
       - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -95,11 +92,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -122,11 +118,10 @@ services:
       - "traefik.http.routers.radarr.entrypoints=web"
       - "traefik.http.services.radarr.loadbalancer.server.port=7878"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -149,11 +144,10 @@ services:
       - "traefik.http.routers.sonarr.entrypoints=web"
       - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
@@ -176,11 +170,10 @@ services:
       - "traefik.http.routers.lidarr.entrypoints=web"
       - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   lazylibrarian:
     image: lscr.io/linuxserver/lazylibrarian:latest
@@ -203,11 +196,10 @@ services:
       - "traefik.http.routers.lazylibrarian.entrypoints=web"
       - "traefik.http.services.lazylibrarian.loadbalancer.server.port=5299"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   unpackerr:
     image: golift/unpackerr:latest
@@ -222,17 +214,16 @@ services:
       - UN_LIDARR_0_URL=http://lidarr:8686
       - UN_LIDARR_0_API_KEY=${LIDARR_API_KEY}
       - UN_LAZYLIBRARIAN_0_URL=http://lazylibrarian:5299
-      - UN_LAZYLIBRARIAN_0_API_KEY=${READARR_API_KEY}
+      - UN_LAZYLIBRARIAN_0_API_KEY=${LAZYLIBRARIAN_API_KEY}
     volumes:
       - /mnt/external_hdd:/data
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   # decluttarr:
   #   image: ghcr.io/manimatter/decluttarr:latest
@@ -252,7 +243,7 @@ services:
   #     - LIDARR_URL=http://lidarr:8686
   #     - LIDARR_API_KEY=${LIDARR_API_KEY}
   #     - LAZYLIBRARIAN_URL=http://lazylibrarian:5299
-  #     - LAZYLIBRARIAN_API_KEY=${READARR_API_KEY}
+  #     - LAZYLIBRARIAN_API_KEY=${LAZYLIBRARIAN_API_KEY}
   #     - REMOVE_STALLED=true
   #     - REMOVE_DEAD_TRACKERS=true
   #   networks:
@@ -278,11 +269,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
@@ -305,11 +295,10 @@ services:
       - "traefik.http.routers.bazarr.entrypoints=web"
       - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
@@ -330,11 +319,10 @@ services:
       - "traefik.http.routers.seerr.entrypoints=web"
       - "traefik.http.services.seerr.loadbalancer.server.port=5055"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   tautulli:
     image: lscr.io/linuxserver/tautulli:latest
@@ -356,36 +344,34 @@ services:
       - "traefik.http.routers.tautulli.entrypoints=web"
       - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
-
-  notifiarr:
-    image: golift/notifiarr:latest
-    container_name: notifiarr
-    restart: unless-stopped
-    environment:
-      - TZ=${TZ}
-      - DN_API_KEY=${NOTIFIARR_API_KEY}
-    volumes:
-      - ${DATADIR}/notifiarr/config:/config
-    ports:
-      - "5454:5454"
-    networks:
-      - homelab
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.lab`)"
-      - "traefik.http.routers.notifiarr.entrypoints=web"
-      - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
-    logging:
-      driver: loki
-      options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
+  # notifiarr:
+  #   image: golift/notifiarr:latest
+  #   container_name: notifiarr
+  #   restart: unless-stopped
+  #   environment:
+  #     - TZ=${TZ}
+  #     - DN_API_KEY=${NOTIFIARR_API_KEY}
+  #   volumes:
+  #     - ${DATADIR}/notifiarr/config:/config
+  #   ports:
+  #     - "5454:5454"
+  #   networks:
+  #     - homelab
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.lab`)"
+  #     - "traefik.http.routers.notifiarr.entrypoints=web"
+  #     - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
+  #   logging:
+  #     driver: loki
+  #     options:
+  #       loki-url: "${LOKI_URL}"
+  #       mode: non-blocking
+  #       max-buffer-size: 4m
 
 networks:
   homelab:

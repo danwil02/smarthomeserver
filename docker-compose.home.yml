@@ -35,11 +35,10 @@ services:
       # don't automatically update this container as it might break your setup
       - "com.centurylinklabs.watchtower.enable=false"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   homebridge:
     image: oznu/homebridge:latest
@@ -50,11 +49,10 @@ services:
     # ports:
     #   - 8581:8581
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   mosquitto:
     image: "eclipse-mosquitto:latest"
@@ -68,11 +66,10 @@ services:
     networks:
       - homelab
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
   node-red:
     image: nodered/node-red:latest
@@ -91,11 +88,10 @@ services:
       - "traefik.http.routers.node-red.entrypoints=web"
       - "traefik.http.services.node-red.loadbalancer.server.port=1880"
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "${LOKI_URL}"
-        mode: non-blocking
-        max-buffer-size: 4m
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   homelab:

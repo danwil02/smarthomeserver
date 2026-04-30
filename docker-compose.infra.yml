@@ -89,7 +89,7 @@ services:
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
-    command: --no-daemon --address=/.lab/${TAILSCALE_IP}
+    command: --no-daemon --address=/.lab/${TAILSCALE_IP} --server=1.1.1.1 --server=1.0.0.1
     ports:
       - "53:53/udp"
       - "53:53/tcp"
