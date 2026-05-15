@@ -26,27 +26,26 @@ services:
       - TZ=${TZ}
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
-      - WEBUI_HTTPS=true
-      - WEBUI_HTTPS_CERT=/config/qbittorrent.crt
-      - WEBUI_HTTPS_KEY=/config/qbittorrent.key
     volumes:
       - ${DATADIR}/qbittorrent/config:/config
       - /mnt/external_hdd:/data
-      - ${DATADIR}/qbittorrent/qbittorrent.crt:/config/qbittorrent.crt
-      - ${DATADIR}/qbittorrent/qbittorrent.key:/config/qbittorrent.key
     ports:
       - 8080:8080
       - 6881:6881
       - 6881:6881/udp
     networks:
       - homelab
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.lab`)"
       - "traefik.http.routers.qbittorrent.entrypoints=web"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
-      - "traefik.http.services.qbittorrent.loadbalancer.server.scheme=https"
-      - "traefik.http.services.qbittorrent.loadbalancer.serverstransport=skipverify@file"
     logging:
       driver: json-file
       options:
@@ -101,6 +100,9 @@ services:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     restart: unless-stopped
+    depends_on:
+      qbittorrent:
+        condition: service_healthy
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -127,6 +129,9 @@ services:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     restart: unless-stopped
+    depends_on:
+      qbittorrent:
+        condition: service_healthy
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -153,6 +158,9 @@ services:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
     restart: unless-stopped
+    depends_on:
+      qbittorrent:
+        condition: service_healthy
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -205,6 +213,9 @@ services:
     image: golift/unpackerr:latest
     container_name: unpackerr
     restart: unless-stopped
+    depends_on:
+      qbittorrent:
+        condition: service_healthy
     environment:
       - TZ=${TZ}
       - UN_SONARR_0_URL=http://sonarr:8989
@@ -268,6 +279,11 @@ services:
       - ./configs/recyclarr.yml:/config/recyclarr.yml:ro
     networks:
       - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.recyclarr.rule=Host(`recyclarr.lab`)"
+      - "traefik.http.routers.recyclarr.entrypoints=web"
+      - "traefik.http.services.recyclarr.loadbalancer.server.port=7474"
     logging:
       driver: json-file
       options:

@@ -85,4 +85,12 @@ compose -f docker-compose.media.yml up -d
 echo "==> [5/5] Starting apps stack"
 compose -f docker-compose.apps.yml up -d
 
+echo "==> Installing systemd services"
+SERVICES_DIR="$(pwd)/services"
+sudo cp "${SERVICES_DIR}/reset-indexer-status.service" /etc/systemd/system/
+sudo cp "${SERVICES_DIR}/reset-indexer-status.timer"   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now reset-indexer-status.timer
+echo "    reset-indexer-status.timer enabled and started"
+
 echo "==> All stacks started"

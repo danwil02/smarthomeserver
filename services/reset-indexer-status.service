@@ -1,0 +1,9 @@
+[Unit]
+Description=Reset *Arr indexer circuit breakers on network recovery
+After=network-online.target snap.docker.dockerd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/will/smarthomeserver/services/reset-indexer-status.sh
+User=root

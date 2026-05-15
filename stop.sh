@@ -5,6 +5,10 @@ cd "$(dirname "$0")"
 
 export COMPOSE_PROJECT_NAME=smarthomeserver
 
+echo "==> Stopping systemd services"
+sudo systemctl stop reset-indexer-status.timer reset-indexer-status.service 2>/dev/null || true
+echo "    reset-indexer-status.timer stopped"
+
 echo "==> [1/5] Stopping apps stack"
 docker compose --env-file .env.local -f docker-compose.apps.yml down
 

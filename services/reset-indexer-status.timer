@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodically reset *Arr indexer circuit breakers
+Requires=reset-indexer-status.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
