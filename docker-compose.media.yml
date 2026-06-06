@@ -36,7 +36,7 @@ services:
     networks:
       - homelab
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -64,6 +64,9 @@ services:
       - ${DATADIR}/prowlarr/config:/config
     ports:
       - "9696:9696"
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     networks:
       - homelab
     labels:
@@ -235,7 +238,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
   # decluttarr:
   #   image: ghcr.io/manimatter/decluttarr:latest
   #   container_name: decluttarr
@@ -265,6 +267,52 @@ services:
   #       loki-url: "${LOKI_URL}"
   #       mode: non-blocking
   #       max-buffer-size: 4m
+
+  decluttarr:
+    image: ghcr.io/manimatter/decluttarr:latest
+    container_name: decluttarr
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      LOG_LEVEL: INFO
+      SSL_VERIFICATION: false
+      #TEST_RUN: True # remove this once you've verified it looks right in logs
+
+      # Features
+      REMOVE_STALLED: True
+      REMOVE_METADATA_MISSING: True
+      REMOVE_FAILED_DOWNLOADS: True
+      REMOVE_ORPHANS: True
+      REMOVE_MISSING_FILES: True
+      # REMOVE_UNMONITORED: True  # careful - removes anything you've unmonitored
+
+      SONARR: >
+        - base_url: "http://sonarr:8989"
+          api_key: "${SONARR_API_KEY}"
+
+      RADARR: >
+        - base_url: "http://radarr:7878"
+          api_key: "${RADARR_API_KEY}"
+
+      LIDARR: >
+        - base_url: "http://lidarr:8686"
+          api_key: "${LIDARR_API_KEY}"
+
+      QBITTORRENT: >
+        - base_url: "http://qbittorrent:8080"
+          username: "${QBIT_USERNAME}"
+          password: "${QBIT_PASSWORD}"
+
+    volumes:
+      - /mnt/external_hdd:/data
+
+    networks:
+      - homelab
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   recyclarr:
     image: ghcr.io/recyclarr/recyclarr:latest

@@ -87,10 +87,53 @@ compose -f docker-compose.apps.yml up -d
 
 echo "==> Installing systemd services"
 SERVICES_DIR="$(pwd)/services"
-sudo cp "${SERVICES_DIR}/reset-indexer-status.service" /etc/systemd/system/
-sudo cp "${SERVICES_DIR}/reset-indexer-status.timer"   /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now reset-indexer-status.timer
-echo "    reset-indexer-status.timer enabled and started"
+SYSTEMD_DIR="/etc/systemd/system"
+RELOAD_NEEDED=false
+CHANGED_UNITS=()
+
+# Install any changed or missing unit files
+for src in "${SERVICES_DIR}"/*.service "${SERVICES_DIR}"/*.timer; do
+  [ -f "${src}" ] || continue
+  unit="$(basename "${src}")"
+  dst="${SYSTEMD_DIR}/${unit}"
+  if [ ! -f "${dst}" ] || ! diff -q "${src}" "${dst}" >/dev/null 2>&1; then
+    sudo cp "${src}" "${dst}"
+    echo "    installed: ${unit}"
+    RELOAD_NEEDED=true
+    CHANGED_UNITS+=("${unit}")
+  else
+    echo "    unchanged: ${unit}"
+  fi
+done
+
+${RELOAD_NEEDED} && sudo systemctl daemon-reload
+
+# Enable timers; enable services that have no paired timer
+for src in "${SERVICES_DIR}"/*.timer "${SERVICES_DIR}"/*.service; do
+  [ -f "${src}" ] || continue
+  unit="$(basename "${src}")"
+  base="${unit%.*}"
+  ext="${unit##*.}"
+
+  # Skip services that are driven by a timer
+  if [ "${ext}" = "service" ] && [ -f "${SERVICES_DIR}/${base}.timer" ]; then
+    continue
+  fi
+
+  changed=false
+  for u in "${CHANGED_UNITS[@]+"${CHANGED_UNITS[@]}"}"; do
+    [ "${u}" = "${unit}" ] && changed=true && break
+  done
+
+  if ! systemctl is-enabled --quiet "${unit}" 2>/dev/null; then
+    sudo systemctl enable --now "${unit}"
+    echo "    enabled and started: ${unit}"
+  elif ${changed}; then
+    sudo systemctl restart "${unit}"
+    echo "    restarted (unit changed): ${unit}"
+  else
+    echo "    already enabled, no changes: ${unit}"
+  fi
+done
 
 echo "==> All stacks started"

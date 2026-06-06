@@ -91,6 +91,32 @@ services:
       - "traefik.http.routers.influxdb.entrypoints=web"
       - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
 
+  unpoller:
+    image: ghcr.io/unpoller/unpoller:latest
+    container_name: unpoller
+    restart: unless-stopped
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    environment:
+      - UP_UNIFI_DEFAULT_URL=https://192.168.1.1
+      - UP_UNIFI_DEFAULT_USER=${UNIFI_USER}
+      - UP_UNIFI_DEFAULT_PASS=${UNIFI_PASSWORD}
+      - UP_UNIFI_DEFAULT_VERIFY_SSL=false
+      - UP_UNIFI_DEFAULT_SAVE_DPI=true
+      - UP_INFLUXDB_URL=http://influxdb:8086
+      - UP_INFLUXDB_AUTH_TOKEN=${INFLUXDB_TOKEN}
+      - UP_INFLUXDB_ORG=${INFLUXDB_ORG}
+      - UP_INFLUXDB_BUCKET=unifi
+      - UP_INFLUXDB_V2=true
+    networks:
+      - homelab
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   telegraf:
     image: telegraf_fronius
     #user: root
