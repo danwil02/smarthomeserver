@@ -136,17 +136,12 @@ services:
     #   - /dev/sda:/dev/sda
     depends_on:
       - influxdb
-    links:
-      - influxdb
-    ports:
-      - '8125:8125'
+    network_mode: host
     environment:
       - OPENWEATHERMAP_API_KEY=$OPENWEATHERMAP_API_KEY
       - INFLUXDB_TOKEN=$INFLUXDB_TOKEN
       - MQTT_USER=$MQTT_USER
       - MQTT_PASSWORD=$MQTT_PASSWORD
-    networks:
-      - homelab
     logging:
       driver: json-file
       options:
