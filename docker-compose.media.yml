@@ -277,12 +277,14 @@ services:
       LOG_LEVEL: INFO
       SSL_VERIFICATION: false
       #TEST_RUN: True # remove this once you've verified it looks right in logs
+      TIMER: 10
 
       # Features
-      REMOVE_STALLED: True
+      REMOVE_STALLED: |
+        max_strikes: 12
       REMOVE_METADATA_MISSING: True
       REMOVE_FAILED_DOWNLOADS: True
-      REMOVE_ORPHANS: True
+      REMOVE_ORPHANS: False # was falsely matching active Radarr/Sonarr downloads as orphaned and deleting them mid-download - see 2026-07-11 incident
       REMOVE_MISSING_FILES: True
       # REMOVE_UNMONITORED: True  # careful - removes anything you've unmonitored
 
@@ -305,6 +307,7 @@ services:
 
     volumes:
       - /mnt/external_hdd:/data
+      - ${DATADIR}/decluttarr/logs:/app/logs
 
     networks:
       - homelab
@@ -407,6 +410,35 @@ services:
       - "traefik.http.routers.tautulli.rule=Host(`tautulli.lab`)"
       - "traefik.http.routers.tautulli.entrypoints=web"
       - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    restart: unless-stopped
+    user: ${PUID}:${PGID}
+    environment:
+      - ND_LOGLEVEL=info
+      - ND_SCANSCHEDULE=1h
+      - TZ=${TZ}
+      - ND_AGENTS=lastfm,deezer
+      - ND_LASTFM_APIKEY=${LASTFM_API_KEY}
+    volumes:
+      - ${DATADIR}/navidrome/config:/data
+      - /mnt/external_hdd/Music:/music:ro
+    ports:
+      - "4533:4533"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.navidrome.rule=Host(`navidrome.lab`)"
+      - "traefik.http.routers.navidrome.entrypoints=web"
+      - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
     logging:
       driver: json-file
       options:
