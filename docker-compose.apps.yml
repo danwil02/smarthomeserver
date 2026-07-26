@@ -30,14 +30,18 @@ services:
     container_name: duplicati
     restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
+      # PUID/PGID=0 (root) intentionally, not ${PUID}/${PGID} — Duplicati needs to
+      # read files owned by every other container's internal user (postgres uid 70,
+      # mosquitto uid 1883, root-owned Home Assistant .storage, etc). Backup source
+      # is read-only for Duplicati; it only ever writes to /config and the remote target.
+      - PUID=0
+      - PGID=0
       - TZ=${TZ}
     #- CLI_ARGS= #optional
     volumes:
-      - ${DATADIR}/backups:/backups
       - ${DATADIR}/duplicati/config:/config
       - ${DATADIR}:/source
+      - ${DATADIR}/../smarthomeserver:/smarthomeserver:ro
     ports:
       - 8200:8200
     networks:

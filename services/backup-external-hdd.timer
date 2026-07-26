@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily mirror of external_hdd to USB backup drive
+Requires=backup-external-hdd.service
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

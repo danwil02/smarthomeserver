@@ -1,0 +1,8 @@
+[Unit]
+Description=Mirror external_hdd to USB backup drive via rsync
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/will/smarthomeserver/services/backup-external-hdd.sh
+User=root
