@@ -47,22 +47,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  watchtower:
-    image: containrrr/watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - TZ=${TZ}
-      - WATCHTOWER_CLEANUP=true # deleting old unused images automatically
-    networks:
-      - homelab
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   samba:
     image: mbentley/timemachine:smb
     restart: unless-stopped

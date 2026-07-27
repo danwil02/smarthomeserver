@@ -3,6 +3,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+MODE="start"
+case "${1:-}" in
+  --update)   MODE="update" ;;
+  --rollback) MODE="rollback" ;;
+  "")         MODE="start" ;;
+  *)          echo "Usage: $0 [--update|--rollback]" >&2; exit 1 ;;
+esac
+
+PULL_FLAG=""
+[ "${MODE}" = "update" ] && PULL_FLAG="--pull always"
+[ "${MODE}" != "start" ] && echo "==> Mode: ${MODE} (PULL_FLAG='${PULL_FLAG}')"
+
 export COMPOSE_PROJECT_NAME=smarthomeserver
 
 NETWORK=homelab
@@ -11,6 +23,72 @@ LOKI_TIMEOUT=60
 
 compose() {
   docker compose --env-file .env.local "$@" 2>&1 | grep -v "Found orphan containers"
+}
+
+# --update: snapshot each :latest image locally as :previous before the stack's
+#   normal `up -d --pull always` fetches and recreates it.
+# --rollback: retag :previous back onto :latest locally so the following plain
+#   `up -d` recreates the container from the previous snapshot instead of pulling.
+# Pinned images (no :latest tag) never match and are left untouched either way.
+sync_latest_images() {
+  local file="$1"
+  [ "${MODE}" = "start" ] && return 0
+
+  local pairs
+  pairs=$(docker compose --env-file .env.local -f "$file" config --format json 2>/dev/null \
+    | jq -r '.services | to_entries[] | select(.value.image != null and (.value.image | test(":latest$"))) | "\(.key)\t\(.value.image)"')
+  [ -z "${pairs}" ] && return 0
+
+  while IFS=$'\t' read -r service image; do
+    local repo="${image%:latest}"
+    if [ "${MODE}" = "update" ]; then
+      if docker image inspect "${image}" >/dev/null 2>&1; then
+        local old_id
+        old_id=$(docker image inspect --format '{{.Id}}' "${image}" | cut -c8-19)
+        docker tag "${image}" "${repo}:previous"
+        echo "    [debug] snapshotted ${service}: ${old_id} -> ${repo}:previous"
+      else
+        echo "    [debug] ${service}: no local image yet, nothing to snapshot"
+      fi
+    elif [ "${MODE}" = "rollback" ]; then
+      if docker image inspect "${repo}:previous" >/dev/null 2>&1; then
+        local prev_id
+        prev_id=$(docker image inspect --format '{{.Id}}' "${repo}:previous" | cut -c8-19)
+        docker tag "${repo}:previous" "${image}"
+        echo "    [debug] rolling back ${service} -> ${prev_id} (was tagged :previous)"
+      else
+        echo "    [debug] WARN: no previous snapshot for ${service}, skipping"
+      fi
+    fi
+  done <<< "${pairs}"
+}
+
+# Post-up-d visibility: for every :latest service in the file, print the image ID
+# actually backing the running container next to the local :latest and :previous
+# tag IDs, so a validation run can confirm each stage landed in the expected state.
+log_stack_state() {
+  local file="$1"
+  [ "${MODE}" = "start" ] && return 0
+
+  local pairs
+  pairs=$(docker compose --env-file .env.local -f "$file" config --format json 2>/dev/null \
+    | jq -r '.services | to_entries[] | select(.value.image != null and (.value.image | test(":latest$"))) | "\(.key)\t\(.value.image)"')
+  [ -z "${pairs}" ] && return 0
+
+  printf "    [debug] %-16s %-14s %-14s %-14s\n" "SERVICE" "RUNNING" "LOCAL:latest" "LOCAL:previous"
+  while IFS=$'\t' read -r service image; do
+    local repo="${image%:latest}"
+    local cid running_id latest_id previous_id
+    cid=$(docker compose --env-file .env.local -f "$file" ps -q "${service}" 2>/dev/null || true)
+    running_id="-"
+    [ -n "${cid}" ] && running_id=$(docker inspect --format '{{.Image}}' "${cid}" 2>/dev/null | cut -c8-19)
+    latest_id=$(docker image inspect --format '{{.Id}}' "${image}" 2>/dev/null | cut -c8-19)
+    previous_id=$(docker image inspect --format '{{.Id}}' "${repo}:previous" 2>/dev/null | cut -c8-19)
+    [ -z "${running_id}" ] && running_id="-"
+    [ -z "${latest_id}" ] && latest_id="-"
+    [ -z "${previous_id}" ] && previous_id="-"
+    printf "    [debug] %-16s %-14s %-14s %-14s\n" "${service}" "${running_id}" "${latest_id}" "${previous_id}"
+  done <<< "${pairs}"
 }
 
 echo "==> Ensuring '${NETWORK}' docker network exists"
@@ -22,7 +100,9 @@ else
 fi
 
 echo "==> [1/5] Starting infra stack"
-compose -f docker-compose.infra.yml up -d
+sync_latest_images docker-compose.infra.yml
+compose -f docker-compose.infra.yml up -d ${PULL_FLAG}
+log_stack_state docker-compose.infra.yml
 
 echo "==> Checking Tailscale DNS setup"
 if ! command -v tailscale >/dev/null 2>&1; then
@@ -62,7 +142,9 @@ else
 fi
 
 echo "==> [2/5] Starting monitoring stack"
-compose -f docker-compose.monitoring.yml up -d
+sync_latest_images docker-compose.monitoring.yml
+compose -f docker-compose.monitoring.yml up -d ${PULL_FLAG}
+log_stack_state docker-compose.monitoring.yml
 
 echo "==> Waiting up to ${LOKI_TIMEOUT}s for Loki to be ready"
 elapsed=0
@@ -77,13 +159,19 @@ done
 echo "    Loki ready after ${elapsed}s"
 
 echo "==> [3/5] Starting home stack"
-compose -f docker-compose.home.yml up -d
+sync_latest_images docker-compose.home.yml
+compose -f docker-compose.home.yml up -d ${PULL_FLAG}
+log_stack_state docker-compose.home.yml
 
 echo "==> [4/5] Starting media stack"
-compose -f docker-compose.media.yml up -d
+sync_latest_images docker-compose.media.yml
+compose -f docker-compose.media.yml up -d ${PULL_FLAG}
+log_stack_state docker-compose.media.yml
 
 echo "==> [5/5] Starting apps stack"
-compose -f docker-compose.apps.yml up -d
+sync_latest_images docker-compose.apps.yml
+compose -f docker-compose.apps.yml up -d ${PULL_FLAG}
+log_stack_state docker-compose.apps.yml
 
 echo "==> Installing systemd services"
 SERVICES_DIR="$(pwd)/services"
@@ -136,4 +224,8 @@ for src in "${SERVICES_DIR}"/*.timer "${SERVICES_DIR}"/*.service; do
   fi
 done
 
-echo "==> All stacks started"
+case "${MODE}" in
+  update)   echo "==> All stacks started (:latest images updated; previous versions tagged :previous for rollback)" ;;
+  rollback) echo "==> All stacks started (:latest images rolled back to previous snapshot)" ;;
+  *)        echo "==> All stacks started" ;;
+esac
