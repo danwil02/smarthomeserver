@@ -16,6 +16,34 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATADIR}/jellyfin/config:/config
+      - "/mnt/external_hdd/TV:/data/tvshows"
+      - "/mnt/external_hdd/Movies:/data/movies"
+      - "/mnt/external_hdd/Music:/data/music"
+    ports:
+      - "8096:8096"
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.lab`)"
+      - "traefik.http.routers.jellyfin.entrypoints=web"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
@@ -318,7 +346,7 @@ services:
         max-file: "3"
 
   recyclarr:
-    image: ghcr.io/recyclarr/recyclarr:latest
+    image: ghcr.io/recyclarr/recyclarr:8.3.2
     container_name: recyclarr
     restart: unless-stopped
     environment:

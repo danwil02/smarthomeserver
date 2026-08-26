@@ -149,7 +149,7 @@ services:
     ports:
       - "5678:5678"
     cpus: 1
-    mem_limit: 512m
+    mem_limit: 2g
     networks:
       - homelab
     logging:

@@ -1,0 +1,8 @@
+[Unit]
+Description=Purge Samba recycle bin files older than 30 days
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/will/smarthomeserver/services/cleanup-samba-recycle.sh
+User=root
