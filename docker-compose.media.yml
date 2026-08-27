@@ -36,7 +36,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.lab`)"
-      - "traefik.http.routers.jellyfin.entrypoints=web"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls=true"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
     logging:
       driver: json-file
@@ -72,7 +73,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.lab`)"
-      - "traefik.http.routers.qbittorrent.entrypoints=web"
+      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
+      - "traefik.http.routers.qbittorrent.tls=true"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
     logging:
       driver: json-file
@@ -100,7 +102,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.lab`)"
-      - "traefik.http.routers.prowlarr.entrypoints=web"
+      - "traefik.http.routers.prowlarr.entrypoints=websecure"
+      - "traefik.http.routers.prowlarr.tls=true"
       - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
     logging:
       driver: json-file
@@ -148,7 +151,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.radarr.rule=Host(`radarr.lab`)"
-      - "traefik.http.routers.radarr.entrypoints=web"
+      - "traefik.http.routers.radarr.entrypoints=websecure"
+      - "traefik.http.routers.radarr.tls=true"
       - "traefik.http.services.radarr.loadbalancer.server.port=7878"
     logging:
       driver: json-file
@@ -177,7 +181,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sonarr.rule=Host(`sonarr.lab`)"
-      - "traefik.http.routers.sonarr.entrypoints=web"
+      - "traefik.http.routers.sonarr.entrypoints=websecure"
+      - "traefik.http.routers.sonarr.tls=true"
       - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
     logging:
       driver: json-file
@@ -206,7 +211,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lidarr.rule=Host(`lidarr.lab`)"
-      - "traefik.http.routers.lidarr.entrypoints=web"
+      - "traefik.http.routers.lidarr.entrypoints=websecure"
+      - "traefik.http.routers.lidarr.tls=true"
       - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
     logging:
       driver: json-file
@@ -232,7 +238,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lazylibrarian.rule=Host(`lazylibrarian.lab`)"
-      - "traefik.http.routers.lazylibrarian.entrypoints=web"
+      - "traefik.http.routers.lazylibrarian.entrypoints=websecure"
+      - "traefik.http.routers.lazylibrarian.tls=true"
       - "traefik.http.services.lazylibrarian.loadbalancer.server.port=5299"
     logging:
       driver: json-file
@@ -361,7 +368,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.recyclarr.rule=Host(`recyclarr.lab`)"
-      - "traefik.http.routers.recyclarr.entrypoints=web"
+      - "traefik.http.routers.recyclarr.entrypoints=websecure"
+      - "traefik.http.routers.recyclarr.tls=true"
       - "traefik.http.services.recyclarr.loadbalancer.server.port=7474"
     logging:
       driver: json-file
@@ -387,7 +395,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bazarr.rule=Host(`bazarr.lab`)"
-      - "traefik.http.routers.bazarr.entrypoints=web"
+      - "traefik.http.routers.bazarr.entrypoints=websecure"
+      - "traefik.http.routers.bazarr.tls=true"
       - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
     logging:
       driver: json-file
@@ -411,7 +420,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.seerr.rule=Host(`seerr.lab`)"
-      - "traefik.http.routers.seerr.entrypoints=web"
+      - "traefik.http.routers.seerr.entrypoints=websecure"
+      - "traefik.http.routers.seerr.tls=true"
       - "traefik.http.services.seerr.loadbalancer.server.port=5055"
     logging:
       driver: json-file
@@ -436,7 +446,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tautulli.rule=Host(`tautulli.lab`)"
-      - "traefik.http.routers.tautulli.entrypoints=web"
+      - "traefik.http.routers.tautulli.entrypoints=websecure"
+      - "traefik.http.routers.tautulli.tls=true"
       - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
     logging:
       driver: json-file
@@ -465,7 +476,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.navidrome.rule=Host(`navidrome.lab`)"
-      - "traefik.http.routers.navidrome.entrypoints=web"
+      - "traefik.http.routers.navidrome.entrypoints=websecure"
+      - "traefik.http.routers.navidrome.tls=true"
       - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
     logging:
       driver: json-file

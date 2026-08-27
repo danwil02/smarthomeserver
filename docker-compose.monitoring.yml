@@ -63,7 +63,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.lab`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   influxdb:
@@ -88,7 +89,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.influxdb.rule=Host(`influx.lab`)"
-      - "traefik.http.routers.influxdb.entrypoints=web"
+      - "traefik.http.routers.influxdb.entrypoints=websecure"
+      - "traefik.http.routers.influxdb.tls=true"
       - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
 
   # unpoller:

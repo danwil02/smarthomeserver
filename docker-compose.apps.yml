@@ -17,7 +17,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.heimdall.rule=Host(`heimdall.lab`)"
-      - "traefik.http.routers.heimdall.entrypoints=web"
+      - "traefik.http.routers.heimdall.entrypoints=websecure"
+      - "traefik.http.routers.heimdall.tls=true"
       - "traefik.http.services.heimdall.loadbalancer.server.port=80"
     logging:
       driver: json-file
@@ -49,7 +50,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.duplicati.rule=Host(`duplicati.lab`)"
-      - "traefik.http.routers.duplicati.entrypoints=web"
+      - "traefik.http.routers.duplicati.entrypoints=websecure"
+      - "traefik.http.routers.duplicati.tls=true"
       - "traefik.http.services.duplicati.loadbalancer.server.port=8200"
     logging:
       driver: json-file
@@ -160,7 +162,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(\"n8n.lab\")"
-      - "traefik.http.routers.n8n.entrypoints=web"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
 
 networks:

@@ -30,7 +30,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.lab`)"
-      - "traefik.http.routers.homeassistant.entrypoints=web"
+      - "traefik.http.routers.homeassistant.entrypoints=websecure"
+      - "traefik.http.routers.homeassistant.tls=true"
       - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
     logging:
       driver: json-file
@@ -83,7 +84,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.node-red.rule=Host(`node-red.lab`)"
-      - "traefik.http.routers.node-red.entrypoints=web"
+      - "traefik.http.routers.node-red.entrypoints=websecure"
+      - "traefik.http.routers.node-red.tls=true"
       - "traefik.http.services.node-red.loadbalancer.server.port=1880"
     logging:
       driver: json-file

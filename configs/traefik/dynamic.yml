@@ -7,14 +7,16 @@ http:
     plex:
       rule: "Host(`plex.lab`)"
       entryPoints:
-        - web
+        - websecure
       service: plex
+      tls: {}
 
     homebridge:
       rule: "Host(`homebridge.lab`)"
       entryPoints:
-        - web
+        - websecure
       service: homebridge
+      tls: {}
 
   services:
     plex:
@@ -26,3 +28,13 @@ http:
       loadBalancer:
         servers:
           - url: "http://172.17.0.1:8581"
+
+tls:
+  certificates:
+    - certFile: /etc/traefik/dynamic/certs/lab.crt
+      keyFile: /etc/traefik/dynamic/certs/lab.key
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/dynamic/certs/lab.crt
+        keyFile: /etc/traefik/dynamic/certs/lab.key
