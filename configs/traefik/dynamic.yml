@@ -3,6 +3,17 @@ http:
     skipverify:
       insecureSkipVerify: true
 
+  middlewares:
+    authelia:
+      forwardAuth:
+        address: "http://authelia:9091/api/verify?rd=https://auth.svc.lab/"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - Remote-User
+          - Remote-Groups
+          - Remote-Name
+          - Remote-Email
+
   routers:
     plex:
       rule: "Host(`plex.lab`)"

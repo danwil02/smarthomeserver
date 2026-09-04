@@ -83,9 +83,10 @@ services:
       - homelab
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.node-red.rule=Host(`node-red.lab`)"
+      - "traefik.http.routers.node-red.rule=Host(`node-red.svc.lab`)"
       - "traefik.http.routers.node-red.entrypoints=websecure"
       - "traefik.http.routers.node-red.tls=true"
+      - "traefik.http.routers.node-red.middlewares=authelia@file"
       - "traefik.http.services.node-red.loadbalancer.server.port=1880"
     logging:
       driver: json-file

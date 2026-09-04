@@ -16,9 +16,10 @@ services:
       - homelab
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.heimdall.rule=Host(`heimdall.lab`)"
+      - "traefik.http.routers.heimdall.rule=Host(`heimdall.svc.lab`)"
       - "traefik.http.routers.heimdall.entrypoints=websecure"
       - "traefik.http.routers.heimdall.tls=true"
+      - "traefik.http.routers.heimdall.middlewares=authelia@file"
       - "traefik.http.services.heimdall.loadbalancer.server.port=80"
     logging:
       driver: json-file
@@ -49,9 +50,10 @@ services:
       - homelab
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.duplicati.rule=Host(`duplicati.lab`)"
+      - "traefik.http.routers.duplicati.rule=Host(`duplicati.svc.lab`)"
       - "traefik.http.routers.duplicati.entrypoints=websecure"
       - "traefik.http.routers.duplicati.tls=true"
+      - "traefik.http.routers.duplicati.middlewares=authelia@file"
       - "traefik.http.services.duplicati.loadbalancer.server.port=8200"
     logging:
       driver: json-file
@@ -133,11 +135,11 @@ services:
       - DB_POSTGRESDB_USER=n8n
       - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-      - N8N_HOST=${N8N_HOST:-n8n.lab}
+      - N8N_HOST=${N8N_HOST:-n8n.svc.lab}
       - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
       - N8N_PORT=5678
-      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-https://n8n.lab}
-      - N8N_EDITOR_BASE_URL=${N8N_WEBHOOK_URL:-https://n8n.lab}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-https://n8n.svc.lab}
+      - N8N_EDITOR_BASE_URL=${N8N_WEBHOOK_URL:-https://n8n.svc.lab}
       - OLLAMA_API_URL=${OLLAMA_API_URL}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
       - INFLUXDB_HOST=influxdb
@@ -161,10 +163,19 @@ services:
         max-file: "3"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(\"n8n.lab\")"
+      - "traefik.http.routers.n8n.rule=Host(\"n8n.svc.lab\")"
       - "traefik.http.routers.n8n.entrypoints=websecure"
       - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.middlewares=authelia@file"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      # Separate, higher-priority, unauthenticated router for webhook paths — external
+      # automations/services POST here non-interactively and can't complete a browser
+      # SSO login challenge. Only the editor UI (the router above) is SSO-gated.
+      - "traefik.http.routers.n8n-webhook.rule=Host(\"n8n.svc.lab\") && PathPrefix(\"/webhook\")"
+      - "traefik.http.routers.n8n-webhook.entrypoints=websecure"
+      - "traefik.http.routers.n8n-webhook.tls=true"
+      - "traefik.http.routers.n8n-webhook.priority=100"
+      - "traefik.http.routers.n8n-webhook.service=n8n"
 
 networks:
   homelab:

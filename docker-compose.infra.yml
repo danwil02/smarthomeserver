@@ -40,9 +40,10 @@ services:
       - homelab
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.lab`)"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.svc.lab`)"
       - "traefik.http.routers.portainer.entrypoints=websecure"
       - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.middlewares=authelia@file"
       - "traefik.http.services.portainer.loadbalancer.server.port=9443"
       - "traefik.http.services.portainer.loadbalancer.server.scheme=https"
       - "traefik.http.services.portainer.loadbalancer.serverstransport=skipverify@file"

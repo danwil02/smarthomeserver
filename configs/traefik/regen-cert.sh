@@ -13,7 +13,7 @@ if [ ! -f "${CERT_DIR}/ca.key" ] || [ ! -f "${CERT_DIR}/ca.crt" ]; then
 fi
 
 HOSTS=$(grep -h 'Host(' docker-compose.*.yml configs/traefik/dynamic.yml \
-  | grep -oE '[a-z0-9-]+\.lab' | sort -u)
+  | grep -oE '[a-z0-9][a-z0-9.-]*\.lab' | sort -u)
 
 COUNT=$(echo "${HOSTS}" | wc -l)
 echo "==> Found ${COUNT} .lab hostnames:"

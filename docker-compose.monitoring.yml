@@ -45,14 +45,36 @@ services:
     volumes:
       - "${DATADIR}/grafana/data:/var/lib/grafana"
       - "./configs/grafana.ini:/etc/grafana/grafana.ini"
+      # The OAuth token exchange is a server-to-server call from Grafana's own container
+      # straight to Authelia over HTTPS — unlike the browser redirect steps, your
+      # browser's trust of the private CA doesn't cover this. Grafana needs its own copy.
+      - "./configs/traefik/certs/ca.crt:/etc/grafana/ca.crt:ro"
     ports:
       - 3000:3000
     # uncomment this if you wanta to allow anonymus acces to Grafana for embedding (e.g. in Home Assistant dashboards)
     environment:
+      # Grafana computes its own OAuth redirect_uri from server.domain/root_url, which
+      # both defaulted to localhost:3000 — mismatched what's registered in Authelia's
+      # client config and caused "invalid_request: redirect_uri does not match".
+      - GF_SERVER_DOMAIN=grafana.lab
+      - GF_SERVER_ROOT_URL=https://grafana.lab/
       - GF_AUTH_DISABLE_LOGIN_FORM=false
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
       - GF_SECURITY_ALLOW_EMBEDDING=false
+      # SSO via Authelia (native OIDC, not the forward-auth gate — see CLAUDE.md).
+      # Local login form stays enabled until the Admin role mapping below is verified
+      # working, so it's not possible to get locked out mid-setup.
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Authelia
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_CLIENT_SECRET}
+      - GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA=/etc/grafana/ca.crt
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email groups
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://auth.svc.lab/api/oidc/authorization
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://auth.svc.lab/api/oidc/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://auth.svc.lab/api/oidc/userinfo
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(groups[*], 'admins') && 'Admin' || 'Viewer'
     networks:
       - homelab
     logging:
@@ -88,9 +110,10 @@ services:
         max-file: "3"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.influxdb.rule=Host(`influx.lab`)"
+      - "traefik.http.routers.influxdb.rule=Host(`influx.svc.lab`)"
       - "traefik.http.routers.influxdb.entrypoints=websecure"
       - "traefik.http.routers.influxdb.tls=true"
+      - "traefik.http.routers.influxdb.middlewares=authelia@file"
       - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
 
   # unpoller:
@@ -134,7 +157,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     # - /:/hostfs:ro
     devices:
-      - /dev/sdb2:/dev/sdb2
+      - /dev/disk/by-id/wwn-0x5000000000000001-part2:/dev/sdb2
     #   - /dev/sda:/dev/sda
     depends_on:
       - influxdb

@@ -3,3 +3,7 @@
 printer-maintenance/testprint_final.pdf
 *.crt
 *.key
+*.pem
+configs/authelia/users_database.yml
+configs/authelia/configuration.yml
+configs/authelia/db.sqlite3

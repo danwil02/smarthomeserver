@@ -1,0 +1,62 @@
+services:
+  authelia-redis:
+    image: redis:alpine
+    container_name: authelia-redis
+    restart: unless-stopped
+    volumes:
+      # Deliberately NOT nested under ${DATADIR}/authelia — that's also Authelia's own
+      # /config mount, and Authelia's entrypoint recursively chowns its whole /config
+      # tree on every startup, silently reverting this directory's ownership (and
+      # breaking Redis's background saves) every time the authelia container restarts.
+      # Confirmed the hard way — see git history / CLAUDE.md gotchas.
+      - ${DATADIR}/authelia-redis:/data
+    networks:
+      - homelab
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  authelia:
+    image: authelia/authelia:4.39.20
+    container_name: authelia
+    restart: unless-stopped
+    depends_on:
+      - authelia-redis
+    environment:
+      - TZ=${TZ}
+      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      - AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET=${AUTHELIA_OIDC_HMAC_SECRET}
+      - AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=${AUTHELIA_RESET_PASSWORD_JWT_SECRET}
+    volumes:
+      - ${DATADIR}/authelia:/config
+      - ./configs/authelia/configuration.yml:/config/configuration.yml:ro
+      - ./configs/authelia/users_database.yml:/config/users_database.yml:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:9091/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    # No host port published deliberately — unlike most services in this stack, Authelia
+    # and its Redis session store don't need direct/fallback host access; only Traefik and
+    # other containers reach them over the internal `homelab` network.
+    networks:
+      - homelab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authelia.rule=Host(`auth.svc.lab`)"
+      - "traefik.http.routers.authelia.entrypoints=websecure"
+      - "traefik.http.routers.authelia.tls=true"
+      - "traefik.http.services.authelia.loadbalancer.server.port=9091"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true

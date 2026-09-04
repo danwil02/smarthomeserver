@@ -99,10 +99,28 @@ else
   echo "    already present"
 fi
 
-echo "==> [1/5] Starting infra stack"
+echo "==> [1/6] Starting infra stack"
 sync_latest_images docker-compose.infra.yml
 compose -f docker-compose.infra.yml up -d ${PULL_FLAG}
 log_stack_state docker-compose.infra.yml
+
+echo "==> [2/6] Starting auth stack"
+sync_latest_images docker-compose.auth.yml
+compose -f docker-compose.auth.yml up -d ${PULL_FLAG}
+log_stack_state docker-compose.auth.yml
+
+echo "==> Waiting up to 60s for Authelia to be healthy"
+AUTHELIA_TIMEOUT=60
+elapsed=0
+until [ "$(docker inspect -f '{{.State.Health.Status}}' authelia 2>/dev/null)" = "healthy" ]; do
+  if [ "${elapsed}" -ge "${AUTHELIA_TIMEOUT}" ]; then
+    echo "    WARN: Authelia did not become healthy within ${AUTHELIA_TIMEOUT}s — SSO-gated services may 502 until it's ready" >&2
+    break
+  fi
+  sleep 2
+  elapsed=$((elapsed + 2))
+done
+[ "$(docker inspect -f '{{.State.Health.Status}}' authelia 2>/dev/null)" = "healthy" ] && echo "    Authelia healthy after ${elapsed}s"
 
 echo "==> Checking Tailscale DNS setup"
 if ! command -v tailscale >/dev/null 2>&1; then
@@ -141,7 +159,7 @@ else
   fi
 fi
 
-echo "==> [2/5] Starting monitoring stack"
+echo "==> [3/6] Starting monitoring stack"
 sync_latest_images docker-compose.monitoring.yml
 compose -f docker-compose.monitoring.yml up -d ${PULL_FLAG}
 log_stack_state docker-compose.monitoring.yml
@@ -158,17 +176,17 @@ until curl -sf "${LOKI_READY_URL}" >/dev/null 2>&1; do
 done
 echo "    Loki ready after ${elapsed}s"
 
-echo "==> [3/5] Starting home stack"
+echo "==> [4/6] Starting home stack"
 sync_latest_images docker-compose.home.yml
 compose -f docker-compose.home.yml up -d ${PULL_FLAG}
 log_stack_state docker-compose.home.yml
 
-echo "==> [4/5] Starting media stack"
+echo "==> [5/6] Starting media stack"
 sync_latest_images docker-compose.media.yml
 compose -f docker-compose.media.yml up -d ${PULL_FLAG}
 log_stack_state docker-compose.media.yml
 
-echo "==> [5/5] Starting apps stack"
+echo "==> [6/6] Starting apps stack"
 sync_latest_images docker-compose.apps.yml
 compose -f docker-compose.apps.yml up -d ${PULL_FLAG}
 log_stack_state docker-compose.apps.yml
